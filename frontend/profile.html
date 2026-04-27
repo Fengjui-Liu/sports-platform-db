@@ -3,74 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>個人頁 | Sports Platform</title>
+  <title>我的頁面 | SportBoard</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="profile">
-  <header class="site-header">
-    <div class="brand">
-      <a href="/">Sports Platform</a>
-      <span class="brand-tag">Profile</span>
-    </div>
-    <nav id="site-nav" class="site-nav"></nav>
-  </header>
-
-  <main class="page-shell">
-    <section class="profile-layout">
-      <article id="profile-card" class="card"></article>
-      <article class="card">
-        <div class="section-head">
-          <h2>更新個人資料</h2>
-          <p>修改自介與頭像網址。</p>
+  <div class="app-shell">
+    <main class="phone-shell">
+      <header class="topbar">
+        <div class="topbar-row">
+          <div>
+            <div class="page-title">我的頁面</div>
+            <div class="brand-subtitle">Profile & Body Record</div>
+          </div>
+          <button id="logout-btn-top" class="gray-btn">登出</button>
         </div>
-        <form id="profile-form" class="inline-form">
-          <textarea name="bio" placeholder="自我介紹"></textarea>
-          <input type="url" name="profile_image" placeholder="頭像網址">
-          <button type="submit" class="primary-btn">更新資料</button>
-        </form>
-      </article>
-    </section>
+      </header>
 
-    <section class="card">
-      <div class="section-head">
-        <h2>身體數據圖表</h2>
-        <p>最近的體重與體脂變化。</p>
-      </div>
-      <div id="bodyrecord-chart" class="chart-shell"></div>
-      <form id="bodyrecord-form" class="inline-form">
-        <input type="number" name="weight" placeholder="體重 kg" step="0.1" required>
-        <input type="number" name="height" placeholder="身高 cm" step="0.1" required>
-        <input type="number" name="body_fat" placeholder="體脂 %" step="0.1" required>
-        <input type="datetime-local" name="recorded_at">
-        <button type="submit" class="primary-btn">新增身體數據</button>
-      </form>
-    </section>
+      <section class="page-content">
+        <section id="profile-card" class="panel-card"></section>
 
-    <section class="three-up">
-      <article class="card">
-        <div class="section-head">
-          <h2>我的貼文</h2>
-          <p>最近發文紀錄。</p>
-        </div>
-        <div id="profile-posts" class="stack-list compact-list"></div>
-      </article>
-      <article class="card">
-        <div class="section-head">
-          <h2>訓練紀錄</h2>
-          <p>所有 session 一覽。</p>
-        </div>
-        <div id="profile-sessions" class="stack-list compact-list"></div>
-      </article>
-      <article class="card">
-        <div class="section-head">
-          <h2>收藏計畫</h2>
-          <p>保留以後要做的訓練。</p>
-        </div>
-        <div id="profile-saved-plans" class="stack-list compact-list"></div>
-      </article>
-    </section>
-  </main>
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>更新資料</h2>
+            <span class="helper-text">Edit</span>
+          </div>
+          <form id="profile-form" class="inline-form">
+            <textarea name="bio" placeholder="自我介紹"></textarea>
+            <input type="url" name="profile_image" placeholder="頭像網址">
+            <button type="submit" class="primary-btn">更新資料</button>
+          </form>
+        </section>
 
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>身體數據</h2>
+            <span class="helper-text">Body</span>
+          </div>
+          <div id="bodyrecord-chart"></div>
+          <form id="bodyrecord-form" class="inline-form">
+            <input type="number" name="weight" placeholder="體重 kg" step="0.1" required>
+            <input type="number" name="height" placeholder="身高 cm" step="0.1" required>
+            <input type="number" name="body_fat" placeholder="體脂 %" step="0.1" required>
+            <input type="datetime-local" name="recorded_at">
+            <button type="submit" class="gray-btn">新增數據</button>
+          </form>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>我的貼文</h2>
+            <span class="helper-text">Posts</span>
+          </div>
+          <div id="profile-posts" class="stack-list"></div>
+        </section>
+      </section>
+
+      <nav id="bottom-nav" class="bottom-nav"></nav>
+    </main>
+  </div>
   <script src="/js/app.js"></script>
   <script src="/js/profile.js"></script>
 </body>

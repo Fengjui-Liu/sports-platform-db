@@ -34,7 +34,7 @@ router.post('/', async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO WORKOUTPLAN (
          user_id, title, is_public, sport_type, difficulty_level,
-         exercise_name, muscle_group, reps, sets, created_at
+         exercise_name, muscle_group, reps, \`sets\`, created_at
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [user_id, title, is_public, sport_type, difficulty_level, exercise_name, muscle_group, reps, sets]
     );
@@ -49,7 +49,7 @@ router.get('/', async (_req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT w.plan_id, w.user_id, w.title, w.is_public, w.sport_type, w.difficulty_level,
-              w.exercise_name, w.muscle_group, w.reps, w.sets, w.created_at,
+              w.exercise_name, w.muscle_group, w.reps, w.\`sets\`, w.created_at,
               u.username,
               COUNT(DISTINCT s.user_id) AS save_count
        FROM WORKOUTPLAN w
@@ -74,7 +74,7 @@ router.get('/:id', async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT w.plan_id, w.user_id, w.title, w.is_public, w.sport_type, w.difficulty_level,
-              w.exercise_name, w.muscle_group, w.reps, w.sets, w.created_at,
+              w.exercise_name, w.muscle_group, w.reps, w.\`sets\`, w.created_at,
               u.username, u.profile_image, COUNT(DISTINCT s.user_id) AS save_count
        FROM WORKOUTPLAN w
        JOIN USER u ON u.user_id = w.user_id

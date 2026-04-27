@@ -1,3 +1,5 @@
+const API_BASE_URL = 'http://localhost:3000/api';
+
 const API = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: 'POST', body }),
@@ -15,7 +17,7 @@ async function request(path, options = {}) {
     config.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`/api${path}`, config);
+  const response = await fetch(`${API_BASE_URL}${path}`, config);
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -62,8 +64,8 @@ function clearCurrentUser() {
   localStorage.removeItem('sports-platform-user');
 }
 
-function renderNav() {
-  const nav = el('#site-nav');
+function renderBottomNav() {
+  const nav = el('#bottom-nav');
   if (!nav) {
     return;
   }
@@ -71,26 +73,18 @@ function renderNav() {
   const user = getCurrentUser();
   const page = document.body.dataset.page;
   const links = [
-    { href: '/', label: '首頁', key: 'home' },
-    { href: '/board.html', label: '專欄', key: 'boards' },
-    { href: user ? `/profile.html?id=${user.user_id}` : '/profile.html', label: '個人頁', key: 'profile' },
-    { href: '/auth.html', label: user ? '切換帳號' : '登入 / 註冊', key: 'auth' },
+    { href: '/', label: '首頁', icon: '🏠', key: 'home' },
+    { href: '/board.html', label: '專欄', icon: '📋', key: 'boards' },
+    { href: '/board.html?compose=1', label: '發文', icon: '➕', key: 'compose' },
+    { href: user ? `/profile.html?id=${user.user_id}` : '/profile.html', label: '我的', icon: '👤', key: 'profile' },
   ];
 
   nav.innerHTML = links
-    .map((link) => `<a class="nav-link ${page === link.key ? 'active' : ''}" href="${link.href}">${link.label}</a>`)
+    .map((link) => {
+      const active = page === link.key || (page === 'post' && link.key === 'boards') || (page === 'plans' && link.key === 'boards');
+      return `<a class="bottom-link ${active ? 'active' : ''}" href="${link.href}"><span class="icon">${link.icon}</span><span>${link.label}</span></a>`;
+    })
     .join('');
-
-  if (user) {
-    nav.insertAdjacentHTML(
-      'beforeend',
-      `<button id="logout-btn" class="action-btn">登出 ${user.username}</button>`
-    );
-    el('#logout-btn').addEventListener('click', () => {
-      clearCurrentUser();
-      window.location.href = '/auth.html';
-    });
-  }
 }
 
 function showMessage(target, text, isError = false) {
@@ -138,8 +132,12 @@ function setupTabs(container = document) {
   buttons.forEach((button) => {
     button.addEventListener('click', () => {
       const tab = button.dataset.tab;
-      container.querySelectorAll('.tab-btn').forEach((btn) => btn.classList.remove('active'));
+      container.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.classList.remove('active');
+        btn.classList.add('muted');
+      });
       button.classList.add('active');
+      button.classList.remove('muted');
       container.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.remove('active'));
       const target = container.querySelector(`#tab-${tab}`) || container.querySelector(`#${tab}-form`) || container.querySelector(`#${tab}`);
       if (target) {
@@ -149,4 +147,24 @@ function setupTabs(container = document) {
   });
 }
 
-renderNav();
+function bindGlobalActions() {
+  const headerAuthBtn = el('#header-auth-btn');
+  if (headerAuthBtn) {
+    const user = getCurrentUser();
+    headerAuthBtn.textContent = user ? user.username : '登入';
+    headerAuthBtn.addEventListener('click', () => {
+      window.location.href = user ? `/profile.html?id=${user.user_id}` : '/auth.html';
+    });
+  }
+
+  const logoutBtn = el('#logout-btn-top');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      clearCurrentUser();
+      window.location.href = '/auth.html';
+    });
+  }
+}
+
+renderBottomNav();
+bindGlobalActions();

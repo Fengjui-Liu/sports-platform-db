@@ -3,41 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>訓練計畫 | Sports Platform</title>
+  <title>訓練計畫 | SportBoard</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="plans">
-  <header class="site-header">
-    <div class="brand">
-      <a href="/">Sports Platform</a>
-      <span class="brand-tag">Workout Plan</span>
-    </div>
-    <nav id="site-nav" class="site-nav"></nav>
-  </header>
+  <div class="app-shell">
+    <main class="phone-shell">
+      <header class="topbar">
+        <div class="topbar-row">
+          <div>
+            <div class="page-title">訓練計畫</div>
+            <div class="brand-subtitle">Workout Plan Detail</div>
+          </div>
+          <a class="gray-btn" href="/board.html">返回</a>
+        </div>
+      </header>
 
-  <main class="page-shell detail-shell">
-    <section id="plan-detail" class="card"></section>
-    <section class="card">
-      <div class="section-head">
-        <h2>建立訓練紀錄</h2>
-        <p>開始訓練後，可以直接補上一筆 session。</p>
-      </div>
-      <form id="session-form" class="inline-form">
-        <input type="number" name="user_id" placeholder="你的 user_id" required>
-        <textarea name="notes" placeholder="這次訓練備註"></textarea>
-        <label>
-          開始時間
-          <input type="datetime-local" name="start_time" required>
-        </label>
-        <label>
-          結束時間
-          <input type="datetime-local" name="end_time" required>
-        </label>
-        <button type="submit" class="primary-btn">開始訓練</button>
-      </form>
-    </section>
-  </main>
+      <section class="page-content">
+        <section id="plan-detail" class="panel-card"></section>
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>開始訓練</h2>
+            <span class="helper-text">Session</span>
+          </div>
+          <form id="session-form" class="inline-form">
+            <input type="number" name="user_id" placeholder="你的 user_id" required>
+            <textarea name="notes" placeholder="這次訓練備註"></textarea>
+            <input type="datetime-local" name="start_time" required>
+            <input type="datetime-local" name="end_time" required>
+            <button type="submit" class="primary-btn">建立訓練紀錄</button>
+          </form>
+        </section>
+      </section>
 
+      <nav id="bottom-nav" class="bottom-nav"></nav>
+    </main>
+  </div>
   <script src="/js/app.js"></script>
   <script src="/js/workoutplan.js"></script>
 </body>

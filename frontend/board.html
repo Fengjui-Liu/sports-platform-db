@@ -3,58 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>專欄 | Sports Platform</title>
+  <title>運動專欄 | SportBoard</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="boards">
-  <header class="site-header">
-    <div class="brand">
-      <a href="/">Sports Platform</a>
-      <span class="brand-tag">Board</span>
-    </div>
-    <nav id="site-nav" class="site-nav"></nav>
-  </header>
+  <div class="app-shell">
+    <main class="phone-shell">
+      <header class="topbar">
+        <div class="topbar-row">
+          <div>
+            <div class="page-title">運動專欄</div>
+            <div id="board-subtitle" class="brand-subtitle">選擇你今天的主題</div>
+          </div>
+          <a class="gray-btn" href="/auth.html">登入</a>
+        </div>
+      </header>
 
-  <main class="page-shell">
-    <section id="board-hero" class="hero-card compact"></section>
+      <section class="page-content">
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>專欄列表</h2>
+            <span class="helper-text">Boards</span>
+          </div>
+          <div id="board-selector" class="stack-list"></div>
+        </section>
 
-    <section class="toolbar-card">
-      <div class="tab-row">
-        <button class="tab-btn active" data-tab="posts">貼文</button>
-        <button class="tab-btn" data-tab="plans">訓練計畫</button>
-        <button class="tab-btn" data-tab="invitations">揪團</button>
-      </div>
-      <form id="post-form" class="inline-form">
-        <input type="number" name="user_id" placeholder="你的 user_id" required>
-        <input type="text" name="post_type" placeholder="貼文類型" required>
-        <input type="url" name="image_url" placeholder="圖片網址（可留空）">
-        <textarea name="content" placeholder="分享今天的訓練內容" required></textarea>
-        <button type="submit" class="primary-btn">新增貼文</button>
-      </form>
-    </section>
+        <section id="board-hero" class="panel-card"></section>
 
-    <section id="tab-posts" class="tab-panel active">
-      <div id="board-posts" class="stack-list"></div>
-    </section>
+        <section class="panel-card">
+          <div class="tab-row">
+            <button class="tab-btn" data-tab="posts">貼文</button>
+            <button class="tab-btn muted" data-tab="plans">計畫</button>
+            <button class="tab-btn muted" data-tab="invitations">揪團</button>
+          </div>
+        </section>
 
-    <section id="tab-plans" class="tab-panel">
-      <div id="board-plans" class="card-grid two-col"></div>
-    </section>
+        <section id="tab-posts" class="tab-panel active">
+          <article class="panel-card">
+            <div class="section-head">
+              <h3>新增貼文</h3>
+              <span class="helper-text">Create</span>
+            </div>
+            <form id="post-form" class="inline-form">
+              <input type="number" name="user_id" placeholder="你的 user_id" required>
+              <input type="text" name="post_type" placeholder="貼文類型" required>
+              <input type="url" name="image_url" placeholder="圖片網址">
+              <textarea name="content" placeholder="分享訓練內容" required></textarea>
+              <button type="submit" class="primary-btn">送出貼文</button>
+            </form>
+          </article>
+          <article class="panel-card">
+            <div class="section-head">
+              <h3>貼文列表</h3>
+              <span class="helper-text">Posts</span>
+            </div>
+            <div id="board-posts" class="stack-list"></div>
+          </article>
+        </section>
 
-    <section id="tab-invitations" class="tab-panel">
-      <form id="invitation-form" class="inline-form card">
-        <h3>建立揪團</h3>
-        <input type="number" name="user_id" placeholder="你的 user_id" required>
-        <input type="text" name="title" placeholder="活動標題" required>
-        <input type="text" name="location" placeholder="地點" required>
-        <input type="datetime-local" name="event_time" required>
-        <input type="number" name="max_participants" placeholder="人數上限" min="1" required>
-        <button type="submit" class="primary-btn">送出揪團</button>
-      </form>
-      <div id="board-invitations" class="stack-list"></div>
-    </section>
-  </main>
+        <section id="tab-plans" class="tab-panel">
+          <article class="panel-card">
+            <div class="section-head">
+              <h3>訓練計畫</h3>
+              <span class="helper-text">Plans</span>
+            </div>
+            <div id="board-plans" class="stack-list"></div>
+          </article>
+        </section>
 
+        <section id="tab-invitations" class="tab-panel">
+          <article class="panel-card">
+            <div class="section-head">
+              <h3>建立揪團</h3>
+              <span class="helper-text">Invite</span>
+            </div>
+            <form id="invitation-form" class="inline-form">
+              <input type="number" name="user_id" placeholder="你的 user_id" required>
+              <input type="text" name="title" placeholder="活動標題" required>
+              <input type="text" name="location" placeholder="地點" required>
+              <input type="datetime-local" name="event_time" required>
+              <input type="number" name="max_participants" placeholder="人數上限" min="1" required>
+              <button type="submit" class="gray-btn">建立揪團</button>
+            </form>
+          </article>
+          <article class="panel-card">
+            <div class="section-head">
+              <h3>揪團列表</h3>
+              <span class="helper-text">Group</span>
+            </div>
+            <div id="board-invitations" class="stack-list"></div>
+          </article>
+        </section>
+      </section>
+
+      <nav id="bottom-nav" class="bottom-nav"></nav>
+    </main>
+  </div>
   <script src="/js/app.js"></script>
   <script src="/js/board.js"></script>
 </body>
