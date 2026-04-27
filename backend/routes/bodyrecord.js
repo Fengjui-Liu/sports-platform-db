@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const db = require('../db');
+const { parseId, sendServerError } = require('./utils');
 
 // 新增身體數據
 router.post('/', async (req, res) => {
   const { weight, height, body_fat, recorded_at } = req.body;
-  const userId = req.params.id;
+  const userId = parseId(req.params.id);
+
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: '無效的 user id' });
+  }
 
   if (weight === undefined || height === undefined || body_fat === undefined) {
     return res.status(400).json({ error: 'weight、height、body_fat 為必填欄位' });
@@ -23,13 +28,17 @@ router.post('/', async (req, res) => {
       record_id: result.insertId,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err);
   }
 });
 
 // 查詢指定使用者的身體數據
 router.get('/', async (req, res) => {
-  const userId = req.params.id;
+  const userId = parseId(req.params.id);
+
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: '無效的 user id' });
+  }
 
   try {
     const [rows] = await db.query(
@@ -42,7 +51,7 @@ router.get('/', async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err);
   }
 });
 
