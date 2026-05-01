@@ -2,7 +2,8 @@ async function initBoardPage() {
   fillUserIdInputs();
   setupTabs();
 
-  const boardId = getParams().get('id');
+  const params = new URLSearchParams(window.location.search);
+  const boardId = params.get('id') || params.get('board_id');
   if (!boardId) {
     el('#board-hero').innerHTML = createEmptyState('缺少 board id');
     return;
@@ -97,9 +98,16 @@ async function initBoardPage() {
 
   el('#post-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const currentUser = getCurrentUser();
+    if (!currentUser?.user_id) {
+      window.alert('請先登入再發文');
+      window.location.href = '/auth.html';
+      return;
+    }
+
     const payload = serializeForm(event.currentTarget);
     payload.board_id = Number(boardId);
-    payload.user_id = Number(payload.user_id);
+    payload.user_id = Number(currentUser.user_id);
 
     try {
       await API.post('/posts', payload);
@@ -111,9 +119,16 @@ async function initBoardPage() {
 
   el('#invitation-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const currentUser = getCurrentUser();
+    if (!currentUser?.user_id) {
+      window.alert('請先登入再建立揪團');
+      window.location.href = '/auth.html';
+      return;
+    }
+
     const payload = serializeForm(event.currentTarget);
     payload.board_id = Number(boardId);
-    payload.user_id = Number(payload.user_id);
+    payload.user_id = Number(currentUser.user_id);
 
     try {
       await API.post('/invitations', payload);

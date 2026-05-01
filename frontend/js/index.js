@@ -1,6 +1,10 @@
 async function initHome() {
   try {
     const [boards, posts] = await Promise.all([API.get('/boards'), API.get('/posts')]);
+    const featuredBoardLink = el('#featured-board-link');
+    if (featuredBoardLink && boards.length) {
+      featuredBoardLink.href = `/board.html?id=${boards[0].board_id}`;
+    }
 
     const boardGrid = el('#board-grid');
     boardGrid.innerHTML = boards.length

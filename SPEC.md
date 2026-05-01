@@ -1,7 +1,7 @@
 # Sports Platform Database Project
 
 ## Tech Stack
-- Backend: Node.js + Express.js
+- Backend: Node.js + Express.js 
 - Database: MySQL
 - Package: mysql2 (原生 SQL，禁止使用 ORM)
 

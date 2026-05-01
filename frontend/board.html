@@ -15,7 +15,7 @@
             <div class="page-title">運動專欄</div>
             <div id="board-subtitle" class="brand-subtitle">選擇你今天的主題</div>
           </div>
-          <a class="gray-btn" href="/auth.html">登入</a>
+          <button id="header-auth-btn" type="button" class="gray-btn">登入</button>
         </div>
       </header>
 
@@ -45,7 +45,7 @@
               <span class="helper-text">Create</span>
             </div>
             <form id="post-form" class="inline-form">
-              <input type="number" name="user_id" placeholder="你的 user_id" required>
+              <input type="hidden" name="user_id">
               <input type="text" name="post_type" placeholder="貼文類型" required>
               <input type="url" name="image_url" placeholder="圖片網址">
               <textarea name="content" placeholder="分享訓練內容" required></textarea>
@@ -78,7 +78,7 @@
               <span class="helper-text">Invite</span>
             </div>
             <form id="invitation-form" class="inline-form">
-              <input type="number" name="user_id" placeholder="你的 user_id" required>
+              <input type="hidden" name="user_id">
               <input type="text" name="title" placeholder="活動標題" required>
               <input type="text" name="location" placeholder="地點" required>
               <input type="datetime-local" name="event_time" required>
