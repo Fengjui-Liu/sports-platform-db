@@ -48,6 +48,13 @@ button {
   cursor: pointer;
 }
 
+button:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .app-shell {
   min-height: 100vh;
   display: block;
@@ -151,6 +158,19 @@ strong {
   font-weight: 700;
 }
 
+.eyebrow,
+.hero-copy {
+  margin: 0 0 8px;
+}
+
+.eyebrow {
+  color: var(--button-blue);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .hero-actions {
   width: min(420px, 100%);
   margin: 34px auto 0;
@@ -208,7 +228,8 @@ strong {
 
 .list-card,
 .mini-card,
-.board-card {
+.board-card,
+.board-link {
   padding: 15px;
   border-radius: var(--radius-md);
 }
@@ -223,6 +244,24 @@ strong {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.action-row,
+.profile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.action-btn {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #edf1f7;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .chip {

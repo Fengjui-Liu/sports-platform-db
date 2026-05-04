@@ -1,9 +1,28 @@
 async function initHome() {
   try {
     const [boards, posts] = await Promise.all([API.get('/boards'), API.get('/posts')]);
+    const currentUser = getCurrentUser();
     const featuredBoardLink = el('#featured-board-link');
     if (featuredBoardLink && boards.length) {
       featuredBoardLink.href = `/board.html?id=${boards[0].board_id}`;
+    }
+
+    const headerAuthBtn = el('#header-auth-btn');
+    if (headerAuthBtn && currentUser) {
+      headerAuthBtn.textContent = currentUser.username;
+    }
+
+    const heroActions = document.querySelector('.hero-actions');
+    if (heroActions) {
+      heroActions.innerHTML = currentUser
+        ? `
+          <a id="featured-board-link" class="primary-btn" href="${featuredBoardLink?.href || '/board.html'}">前往專欄</a>
+          <a class="gray-btn" href="/profile.html?id=${currentUser.user_id}">我的頁面</a>
+        `
+        : `
+          <a id="featured-board-link" class="primary-btn" href="${featuredBoardLink?.href || '/board.html'}">前往專欄</a>
+          <a class="gray-btn" href="/auth.html">登入 / 註冊</a>
+        `;
     }
 
     const boardGrid = el('#board-grid');

@@ -67,21 +67,27 @@ router.get('/', async (_req, res) => {
 
 router.get('/:id', async (req, res) => {
   const planId = parseId(req.params.id);
+  const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;
   if (Number.isNaN(planId)) {
     return res.status(400).json({ error: '無效的 plan id' });
+  }
+  if (req.query.user_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 user id' });
   }
 
   try {
     const [rows] = await db.query(
       `SELECT w.plan_id, w.user_id, w.title, w.is_public, w.sport_type, w.difficulty_level,
               w.exercise_name, w.muscle_group, w.reps, w.\`sets\`, w.created_at,
-              u.username, u.profile_image, COUNT(DISTINCT s.user_id) AS save_count
+              u.username, u.profile_image, COUNT(DISTINCT s.user_id) AS save_count,
+              MAX(CASE WHEN ws.user_id IS NULL THEN 0 ELSE 1 END) AS saved_by_viewer
        FROM WORKOUTPLAN w
        JOIN USER u ON u.user_id = w.user_id
        LEFT JOIN WORKOUTPLANSAVE s ON s.plan_id = w.plan_id
+       LEFT JOIN WORKOUTPLANSAVE ws ON ws.plan_id = w.plan_id AND ws.user_id = ?
        WHERE w.plan_id = ?
        GROUP BY w.plan_id`,
-      [planId]
+      [viewerId, planId]
     );
 
     if (rows.length === 0) {
@@ -100,7 +106,19 @@ router.delete('/:id', async (req, res) => {
     return res.status(400).json({ error: '無效的 plan id' });
   }
 
+  if (!ensureRequired(res, req.body, ['user_id'])) {
+    return;
+  }
+
   try {
+    const [[plan]] = await db.query('SELECT user_id FROM WORKOUTPLAN WHERE plan_id = ?', [planId]);
+    if (!plan) {
+      return res.status(404).json({ error: '找不到訓練計畫' });
+    }
+    if (Number(plan.user_id) !== Number(req.body.user_id)) {
+      return res.status(403).json({ error: '只能刪除自己的訓練計畫' });
+    }
+
     const [result] = await db.query('DELETE FROM WORKOUTPLAN WHERE plan_id = ?', [planId]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: '找不到訓練計畫' });

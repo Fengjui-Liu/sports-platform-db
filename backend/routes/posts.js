@@ -64,8 +64,12 @@ router.post('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const postId = parseId(req.params.id);
+  const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
+  }
+  if (req.query.user_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 user id' });
   }
 
   try {
@@ -74,15 +78,17 @@ router.get('/:id', async (req, res) => {
               u.username, u.email, u.bio, u.profile_image,
               b.sport_type AS board_name, b.description AS board_description,
               COUNT(DISTINCT l.user_id) AS like_count,
-              COUNT(DISTINCT c.comment_id) AS comment_count
+              COUNT(DISTINCT c.comment_id) AS comment_count,
+              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer
        FROM POST p
        JOIN USER u ON u.user_id = p.user_id
        JOIN SPORTBOARD b ON b.board_id = p.board_id
        LEFT JOIN POSTLIKE l ON l.post_id = p.post_id
        LEFT JOIN COMMENT c ON c.post_id = p.post_id
+       LEFT JOIN POSTLIKE pl ON pl.post_id = p.post_id AND pl.user_id = ?
        WHERE p.post_id = ?
        GROUP BY p.post_id`,
-      [postId]
+      [viewerId, postId]
     );
 
     if (rows.length === 0) {
@@ -101,7 +107,19 @@ router.delete('/:id', async (req, res) => {
     return res.status(400).json({ error: '無效的 post id' });
   }
 
+  if (!ensureRequired(res, req.body, ['user_id'])) {
+    return;
+  }
+
   try {
+    const [[post]] = await db.query('SELECT user_id FROM POST WHERE post_id = ?', [postId]);
+    if (!post) {
+      return res.status(404).json({ error: '找不到貼文' });
+    }
+    if (Number(post.user_id) !== Number(req.body.user_id)) {
+      return res.status(403).json({ error: '只能刪除自己的貼文' });
+    }
+
     const [result] = await db.query('DELETE FROM POST WHERE post_id = ?', [postId]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: '找不到貼文' });
@@ -114,19 +132,24 @@ router.delete('/:id', async (req, res) => {
 
 router.get('/:id/comments', async (req, res) => {
   const postId = parseId(req.params.id);
+  const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
+  }
+  if (req.query.user_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 user id' });
   }
 
   try {
     const [rows] = await db.query(
       `SELECT c.comment_id, c.post_id, c.user_id, c.content, c.created_at,
-              u.username, u.profile_image
+              u.username, u.profile_image,
+              CASE WHEN c.user_id = ? THEN TRUE ELSE FALSE END AS can_delete
        FROM COMMENT c
        JOIN USER u ON u.user_id = c.user_id
        WHERE c.post_id = ?
        ORDER BY c.created_at ASC, c.comment_id ASC`,
-      [postId]
+      [viewerId, postId]
     );
     res.json(rows);
   } catch (err) {

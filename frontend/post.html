@@ -28,10 +28,11 @@
             <span class="helper-text">Comments</span>
           </div>
           <form id="comment-form" class="inline-form">
-            <input type="number" name="user_id" placeholder="你的 user_id" required>
+            <input type="hidden" name="user_id">
             <textarea name="content" placeholder="新增留言" required></textarea>
             <button type="submit" class="primary-btn">送出留言</button>
           </form>
+          <div id="comment-status" class="status-line"></div>
           <div id="comment-list" class="stack-list"></div>
         </section>
       </section>

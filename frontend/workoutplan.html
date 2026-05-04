@@ -19,15 +19,16 @@
         </div>
       </header>
 
-      <section class="page-content">
-        <section id="plan-detail" class="panel-card"></section>
-        <section class="panel-card">
-          <div class="section-head">
-            <h2>開始訓練</h2>
-            <span class="helper-text">Session</span>
-          </div>
+        <section class="page-content">
+          <section id="plan-detail" class="panel-card"></section>
+          <div id="plan-status" class="status-line"></div>
+          <section class="panel-card">
+            <div class="section-head">
+              <h2>開始訓練</h2>
+              <span class="helper-text">Session</span>
+            </div>
           <form id="session-form" class="inline-form">
-            <input type="number" name="user_id" placeholder="你的 user_id" required>
+            <input type="hidden" name="user_id">
             <textarea name="notes" placeholder="這次訓練備註"></textarea>
             <input type="datetime-local" name="start_time" required>
             <input type="datetime-local" name="end_time" required>

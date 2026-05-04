@@ -4,12 +4,12 @@ const { ensureRequired, parseId, sendServerError } = require('./utils');
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
-  if (!ensureRequired(res, req.body, ['user_id', 'plan_id', 'start_time', 'end_time'])) {
+router.post('/sessions', async (req, res) => {
+  if (!ensureRequired(res, req.body, ['user_id', 'start_time', 'end_time'])) {
     return;
   }
 
-  const { user_id, plan_id, notes = '', start_time, end_time } = req.body;
+  const { user_id, plan_id = null, notes = '', start_time, end_time } = req.body;
 
   try {
     const [result] = await db.query(

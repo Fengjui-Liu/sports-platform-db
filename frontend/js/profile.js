@@ -20,7 +20,7 @@ async function initProfilePage() {
     ]);
 
     renderProfile(user);
-    renderBodyChart(bodyRecords);
+    renderBodyRecords(bodyRecords);
     renderSimpleList('#profile-posts', posts, (post) => `
       <a class="mini-card" href="/post.html?id=${post.post_id}">
         <strong>${post.board_name}</strong>
@@ -72,7 +72,7 @@ function renderProfile(user) {
   profileForm.profile_image.value = user.profile_image || '';
 }
 
-function renderBodyChart(records) {
+function renderBodyRecords(records) {
   const chartShell = el('#bodyrecord-chart');
   if (!records.length) {
     chartShell.innerHTML = createEmptyState('尚未建立身體數據');
@@ -107,6 +107,18 @@ function renderBodyChart(records) {
       <text x="${padding}" y="${padding - 8}">Weight / Body Fat</text>
       <text x="${width - padding - 120}" y="${padding - 8}" fill="#213b99">藍：體重 紅：體脂</text>
     </svg>
+    <div class="stack-list">
+      ${records
+        .map(
+          (record) => `
+            <div class="mini-card">
+              <strong>${formatDate(record.recorded_at)}</strong>
+              <div class="meta-line">體重 ${record.weight} kg · 身高 ${record.height} cm · 體脂 ${record.body_fat} %</div>
+            </div>
+          `
+        )
+        .join('')}
+    </div>
   `;
 }
 
@@ -130,6 +142,9 @@ function bindProfileForms(userId) {
   el('#bodyrecord-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const payload = serializeForm(event.currentTarget);
+    if (payload.recorded_at) {
+      payload.recorded_at = toApiDateTime(payload.recorded_at);
+    }
 
     try {
       await API.post(`/users/${userId}/bodyrecord`, payload);

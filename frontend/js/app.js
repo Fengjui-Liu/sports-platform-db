@@ -58,10 +58,14 @@ function getCurrentUser() {
 
 function setCurrentUser(user) {
   localStorage.setItem('sports-platform-user', JSON.stringify(user));
+  localStorage.setItem('user_id', String(user.user_id));
+  localStorage.setItem('username', user.username);
 }
 
 function clearCurrentUser() {
   localStorage.removeItem('sports-platform-user');
+  localStorage.removeItem('user_id');
+  localStorage.removeItem('username');
 }
 
 function renderBottomNav() {
@@ -106,6 +110,23 @@ function createEmptyState(text) {
 function currentUserIdOrBlank() {
   const user = getCurrentUser();
   return user ? user.user_id : '';
+}
+
+function requireCurrentUser(message = '請先登入') {
+  const user = getCurrentUser();
+  if (!user?.user_id) {
+    window.alert(message);
+    window.location.href = '/auth.html';
+    return null;
+  }
+  return user;
+}
+
+function toApiDateTime(value) {
+  if (!value) {
+    return value;
+  }
+  return value.length === 16 ? `${value.replace('T', ' ')}:00` : value.replace('T', ' ');
 }
 
 function fillUserIdInputs(root = document) {

@@ -20,6 +20,12 @@ function initAuthPage() {
   const registerForm = el('#register-form');
   const loginStatus = el('#login-status');
   const registerStatus = el('#register-status');
+  const registerNext = el('#register-next');
+  const mode = getParams().get('mode');
+
+  if (mode === 'login' || mode === 'register') {
+    showAuthScreen(mode);
+  }
 
   document.querySelectorAll('[data-auth-page]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -35,7 +41,7 @@ function initAuthPage() {
       const result = await API.post('/users/login', payload);
       setCurrentUser(result.user);
       showMessage(loginStatus, `登入成功，user_id = ${result.user.user_id}`);
-      window.location.href = `/profile.html?id=${result.user.user_id}`;
+      window.location.href = '/';
     } catch (err) {
       showMessage(loginStatus, err.message, true);
     }
@@ -47,11 +53,13 @@ function initAuthPage() {
 
     try {
       const result = await API.post('/users/register', payload);
-      showMessage(registerStatus, `註冊成功，請使用 user_id ${result.user_id} 登入`);
+      showMessage(registerStatus, `註冊成功，user_id = ${result.user_id}`);
+      showMessage(registerNext, '即將切換到登入頁');
       registerForm.reset();
-      showAuthScreen('login');
+      window.location.href = '/auth.html?mode=login';
     } catch (err) {
       showMessage(registerStatus, err.message, true);
+      showMessage(registerNext, '', false);
     }
   });
 }

@@ -24,18 +24,26 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
+  const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;
+  if (req.query.user_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 user id' });
+  }
+
   try {
     const [rows] = await db.query(
       `SELECT i.invitation_id, i.user_id, i.board_id, i.title, i.location, i.event_time,
               i.max_participants, i.created_at, u.username, b.sport_type AS board_name,
-              COUNT(DISTINCT p.user_id) AS participant_count
+              COUNT(DISTINCT p.user_id) AS participant_count,
+              MAX(CASE WHEN vp.user_id IS NULL THEN 0 ELSE 1 END) AS joined_by_viewer
        FROM WORKOUTINVITATION i
        JOIN USER u ON u.user_id = i.user_id
        JOIN SPORTBOARD b ON b.board_id = i.board_id
        LEFT JOIN INVITATIONPARTICIPANT p ON p.invitation_id = i.invitation_id
+       LEFT JOIN INVITATIONPARTICIPANT vp ON vp.invitation_id = i.invitation_id AND vp.user_id = ?
        GROUP BY i.invitation_id
-       ORDER BY i.event_time ASC, i.invitation_id DESC`
+       ORDER BY i.event_time ASC, i.invitation_id DESC`,
+      [viewerId]
     );
     res.json(rows);
   } catch (err) {
