@@ -31,6 +31,7 @@ sports-platform-db/
 ### Post 貼文
 - POST /api/posts — 建立貼文 { user_id, board_id, post_type, content, image_url }
 - GET /api/posts/:id — 取得貼文詳情
+- PUT /api/posts/:id — 修改貼文 { user_id, content, image_url }
 - DELETE /api/posts/:id — 刪除貼文
 
 ### Comment 留言
@@ -53,6 +54,7 @@ sports-platform-db/
 ### WorkoutSession 訓練紀錄
 - POST /api/sessions — 建立訓練紀錄 { user_id, plan_id, notes, start_time, end_time }
 - GET /api/users/:id/sessions — 取得用戶所有訓練紀錄
+- DELETE /api/sessions/:id — 刪除訓練紀錄 { user_id }
 
 ### WorkoutInvitation 揪團
 - POST /api/invitations — 建立揪團 { user_id, board_id, title, location, event_time, max_participants }

@@ -130,6 +130,34 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  const postId = parseId(req.params.id);
+  if (Number.isNaN(postId)) {
+    return res.status(400).json({ error: '無效的 post id' });
+  }
+
+  if (!ensureRequired(res, req.body, ['user_id', 'content'])) {
+    return;
+  }
+
+  const { user_id, content, image_url = null } = req.body;
+
+  try {
+    const [[post]] = await db.query('SELECT user_id FROM POST WHERE post_id = ?', [postId]);
+    if (!post) {
+      return res.status(404).json({ error: '找不到貼文' });
+    }
+    if (Number(post.user_id) !== Number(user_id)) {
+      return res.status(403).json({ error: '只能修改自己的貼文' });
+    }
+
+    await db.query('UPDATE POST SET content = ?, image_url = ? WHERE post_id = ?', [content, image_url, postId]);
+    res.json({ message: '修改貼文成功' });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
 router.get('/:id/comments', async (req, res) => {
   const postId = parseId(req.params.id);
   const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;

@@ -151,6 +151,7 @@ git pull origin main
 |--------|------|------|
 | POST | /api/posts | 建立貼文 |
 | GET | /api/posts/:id | 取得貼文詳情 |
+| PUT | /api/posts/:id | 修改貼文 |
 | DELETE | /api/posts/:id | 刪除貼文 |
 | POST | /api/posts/:id/like | 按讚 |
 | DELETE | /api/posts/:id/like | 取消按讚 |
@@ -177,6 +178,7 @@ git pull origin main
 |--------|------|------|
 | POST | /api/sessions | 建立訓練紀錄 |
 | GET | /api/users/:id/sessions | 取得用戶訓練紀錄 |
+| DELETE | /api/sessions/:id | 刪除訓練紀錄 |
 
 ### 揪團
 | Method | Path | 說明 |

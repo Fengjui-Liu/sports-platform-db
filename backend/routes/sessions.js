@@ -46,4 +46,30 @@ router.get('/users/:id/sessions', async (req, res) => {
   }
 });
 
+router.delete('/sessions/:id', async (req, res) => {
+  const sessionId = parseId(req.params.id);
+  if (Number.isNaN(sessionId)) {
+    return res.status(400).json({ error: '無效的 session id' });
+  }
+
+  if (!ensureRequired(res, req.body, ['user_id'])) {
+    return;
+  }
+
+  try {
+    const [[session]] = await db.query('SELECT user_id FROM WORKOUTSESSION WHERE session_id = ?', [sessionId]);
+    if (!session) {
+      return res.status(404).json({ error: '找不到訓練紀錄' });
+    }
+    if (Number(session.user_id) !== Number(req.body.user_id)) {
+      return res.status(403).json({ error: '只能刪除自己的訓練紀錄' });
+    }
+
+    await db.query('DELETE FROM WORKOUTSESSION WHERE session_id = ?', [sessionId]);
+    res.json({ message: '刪除訓練紀錄成功' });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
 module.exports = router;

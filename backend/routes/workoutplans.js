@@ -100,6 +100,51 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  const planId = parseId(req.params.id);
+  if (Number.isNaN(planId)) {
+    return res.status(400).json({ error: '無效的 plan id' });
+  }
+
+  if (!ensureRequired(res, req.body, [
+    'user_id',
+    'title',
+    'is_public',
+    'sport_type',
+    'difficulty_level',
+    'exercise_name',
+    'muscle_group',
+    'sets',
+    'reps',
+  ])) {
+    return;
+  }
+
+  const { user_id, title, is_public, sport_type, difficulty_level, exercise_name, muscle_group, sets, reps } = req.body;
+
+  try {
+    const [[plan]] = await db.query('SELECT user_id FROM WORKOUTPLAN WHERE plan_id = ?', [planId]);
+    if (!plan) {
+      return res.status(404).json({ error: '找不到訓練計畫' });
+    }
+    if (Number(plan.user_id) !== Number(user_id)) {
+      return res.status(403).json({ error: '只能修改自己的訓練計畫' });
+    }
+
+    await db.query(
+      `UPDATE WORKOUTPLAN
+       SET title = ?, is_public = ?, sport_type = ?, difficulty_level = ?,
+           exercise_name = ?, muscle_group = ?, \`sets\` = ?, reps = ?
+       WHERE plan_id = ?`,
+      [title, is_public, sport_type, difficulty_level, exercise_name, muscle_group, sets, reps, planId]
+    );
+
+    res.json({ message: '修改訓練計畫成功' });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   const planId = parseId(req.params.id);
   if (Number.isNaN(planId)) {
