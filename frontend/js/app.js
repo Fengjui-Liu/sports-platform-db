@@ -68,6 +68,20 @@ function clearCurrentUser() {
   localStorage.removeItem('username');
 }
 
+async function getDefaultBoardUrl(options = {}) {
+  const boards = await API.get('/boards');
+  if (!Array.isArray(boards) || boards.length === 0) {
+    throw new Error('目前沒有任何專欄');
+  }
+
+  const params = new URLSearchParams({ id: String(boards[0].board_id) });
+  if (options.compose) {
+    params.set('compose', '1');
+  }
+
+  return `/board.html?${params.toString()}`;
+}
+
 function renderBottomNav() {
   const nav = el('#bottom-nav');
   if (!nav) {
@@ -78,17 +92,33 @@ function renderBottomNav() {
   const page = document.body.dataset.page;
   const links = [
     { href: '/', label: '首頁', icon: '🏠', key: 'home' },
-    { href: '/board.html', label: '專欄', icon: '📋', key: 'boards' },
-    { href: '/board.html?compose=1', label: '發文', icon: '➕', key: 'compose' },
+    { href: '/board.html', label: '專欄', icon: '📋', key: 'boards', useDefaultBoard: true },
+    { href: '/board.html?compose=1', label: '發文', icon: '➕', key: 'compose', useDefaultBoard: true, compose: true },
     { href: user ? `/profile.html?id=${user.user_id}` : '/profile.html', label: '我的', icon: '👤', key: 'profile' },
   ];
 
   nav.innerHTML = links
     .map((link) => {
       const active = page === link.key || (page === 'post' && link.key === 'boards') || (page === 'plans' && link.key === 'boards');
-      return `<a class="bottom-link ${active ? 'active' : ''}" href="${link.href}"><span class="icon">${link.icon}</span><span>${link.label}</span></a>`;
+      const attrs = link.useDefaultBoard
+        ? `data-use-default-board="true"${link.compose ? ' data-compose="true"' : ''}`
+        : '';
+      return `<a class="bottom-link ${active ? 'active' : ''}" href="${link.href}" ${attrs}><span class="icon">${link.icon}</span><span>${link.label}</span></a>`;
     })
     .join('');
+
+  nav.querySelectorAll('[data-use-default-board="true"]').forEach((link) => {
+    link.addEventListener('click', async (event) => {
+      event.preventDefault();
+
+      try {
+        const url = await getDefaultBoardUrl({ compose: link.dataset.compose === 'true' });
+        window.location.href = url;
+      } catch (err) {
+        window.alert(err.message);
+      }
+    });
+  });
 }
 
 function showMessage(target, text, isError = false) {
