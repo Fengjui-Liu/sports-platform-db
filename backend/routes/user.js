@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
 const router = express.Router();
 const db = require('../db');
 const bodyRecordRoutes = require('./bodyrecord');
@@ -14,9 +15,10 @@ router.post('/register', async (req, res) => {
 
   const { username, password, email } = req.body;
   try {
+    const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await db.query(
       'INSERT INTO USER (username, password, email) VALUES (?, ?, ?)',
-      [username, password, email]
+      [username, passwordHash, email]
     );
     res.status(201).json({ message: '註冊成功', user_id: result.insertId });
   } catch (err) {
@@ -33,10 +35,14 @@ router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const [rows] = await db.query(
-      'SELECT user_id, username, email, bio, profile_image FROM USER WHERE username = ? AND password = ?',
-      [username, password]
+      'SELECT user_id, username, password, email, bio, profile_image FROM USER WHERE username = ?',
+      [username]
     );
     if (rows.length === 0) return res.status(401).json({ error: '帳號或密碼錯誤' });
+    const user = rows[0];
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) return res.status(401).json({ error: '帳號或密碼錯誤' });
+    delete user.password;
     res.json({ message: '登入成功', user: rows[0] });
   } catch (err) {
     sendServerError(res, err);
@@ -181,7 +187,7 @@ router.get('/:id/saved-plans', async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT w.plan_id, w.title, w.sport_type, w.difficulty_level, w.exercise_name,
-              w.muscle_group, w.reps, w.\`sets\`, w.created_at, u.username
+              w.muscle_group, w.reps, w.sets, w.created_at, u.username
        FROM WORKOUTPLANSAVE s
        JOIN WORKOUTPLAN w ON w.plan_id = s.plan_id
        JOIN USER u ON u.user_id = w.user_id
