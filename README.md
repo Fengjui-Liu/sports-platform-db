@@ -109,7 +109,10 @@ git pull origin main
 
 ---
 
-## 📁 專案結構sports-platform-db/
+## 📁 專案結構
+
+```text
+sports-platform-db/
 ├── backend/
 │   ├── routes/          # API 路由
 │   │   ├── user.js
@@ -127,6 +130,8 @@ git pull origin main
 │   └── ERD.drawio
 ├── SPEC.md
 └── README.md
+```
+
 ---
 
 ## 🔐 資安設計
