@@ -7,48 +7,41 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="home">
-  <div class="app-shell">
-    <main class="phone-shell">
-      <header class="topbar slim">
-        <div class="topbar-row">
-          <div>
-            <div class="page-title">SportBoard</div>
-            <div class="brand-subtitle">Your Best Workout Partner</div>
-          </div>
-          <button id="header-auth-btn" class="gray-btn">登入</button>
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+    <div class="site-body">
+      <aside id="board-sidebar" class="sidebar"></aside>
+      <main class="main-content">
+        <div class="page-stack">
+          <section id="welcome-banner" class="welcome-banner"></section>
+
+          <section class="page-hero">
+            <div>
+              <p class="eyebrow">Latest Posts</p>
+              <h1>最新貼文</h1>
+              <p class="page-description">追蹤所有運動專欄的最新討論、訓練心得與揪團動態。</p>
+            </div>
+            <div class="chip-row">
+              <a id="hero-board-link" class="primary-btn" href="/board.html">瀏覽專欄</a>
+              <a id="hero-profile-link" class="ghost-btn" href="/auth.html">我的頁面</a>
+            </div>
+          </section>
+
+          <section id="mobile-board-bar" class="mobile-board-bar"></section>
+
+          <section class="panel-card">
+            <div class="section-head">
+              <div>
+                <h2>貼文列表</h2>
+                <p class="section-copy">依照時間顯示全站最新內容</p>
+              </div>
+            </div>
+            <div id="latest-posts" class="stack-list"></div>
+          </section>
         </div>
-      </header>
-
-      <section class="phone-home">
-        <div class="hero-brand">
-          <div class="brand-wordmark"><span>🏃‍♂️</span><span>SportBoard</span></div>
-          <div class="brand-slogan">Your Best Workout Partner</div>
-        </div>
-
-        <div class="hero-actions">
-          <a id="featured-board-link" class="primary-btn" href="/board.html?id=1">前往專欄</a>
-          <a class="gray-btn" href="/auth.html">登入 / 註冊</a>
-        </div>
-
-        <section class="panel-card">
-          <div class="section-head">
-            <h2>運動專欄</h2>
-            <span class="helper-text">Boards</span>
-          </div>
-          <div id="board-grid" class="stack-list"></div>
-        </section>
-
-        <section class="panel-card">
-          <div class="section-head">
-            <h2>最新貼文</h2>
-            <span class="helper-text">Latest</span>
-          </div>
-          <div id="latest-posts" class="stack-list"></div>
-        </section>
-      </section>
-
-      <nav id="bottom-nav" class="bottom-nav"></nav>
-    </main>
+      </main>
+    </div>
+    <nav id="bottom-nav" class="bottom-nav"></nav>
   </div>
   <script src="/js/app.js"></script>
   <script src="/js/index.js"></script>

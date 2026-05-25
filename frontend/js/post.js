@@ -10,11 +10,13 @@ async function initPostPage() {
 
   try {
     const query = currentUser ? `?user_id=${currentUser.user_id}` : '';
-    const [post, comments] = await Promise.all([
+    const [boards, post, comments] = await Promise.all([
+      API.get('/boards'),
       API.get(`/posts/${postId}${query}`),
       API.get(`/posts/${postId}/comments${query}`),
     ]);
 
+    renderBoardSidebar(boards, post.board_id);
     renderPost(post, currentUser);
     renderComments(postId, comments, currentUser);
     bindPostActions(postId, post, currentUser);
@@ -29,21 +31,27 @@ function renderPost(post, currentUser) {
 
   el('#post-detail').innerHTML = `
     <div class="action-row">
-      <div>
-        <p class="eyebrow">${post.board_name}</p>
-        <h1>${post.post_type}</h1>
-        <div class="meta-line">by ${post.username} · ${formatDate(post.created_at)}</div>
+      <div class="profile-summary">
+        <span class="avatar-circle">${escapeHtml(getUserInitials(post.username))}</span>
+        <div>
+          <div class="chip-row">
+            <span class="chip">${getBoardEmoji(post.board_name)} ${escapeHtml(post.board_name)}</span>
+          </div>
+          <h1 style="margin-top:12px;">${escapeHtml(post.username)}</h1>
+          <div class="meta-line">${formatDate(post.created_at)}</div>
+        </div>
       </div>
       <div class="chip-row">
-        <button id="like-btn" class="primary-btn" ${currentUser ? '' : 'disabled'}>${likeButtonLabel}</button>
-        ${isOwner ? '<button id="delete-post-btn" class="gray-btn">刪除貼文</button>' : ''}
+        <button id="like-btn" class="primary-btn" type="button" ${currentUser ? '' : 'disabled'}>${likeButtonLabel}</button>
+        ${isOwner ? '<button id="delete-post-btn" class="ghost-btn" type="button">刪除貼文</button>' : ''}
       </div>
     </div>
-    <p>${post.content}</p>
-    ${post.image_url ? `<img class="cover-image" src="${post.image_url}" alt="post image">` : ''}
-    <div class="chip-row">
-      <span class="chip">❤️ ${post.like_count}</span>
-      <span class="chip">💬 ${post.comment_count}</span>
+    <p class="page-description">${escapeHtml(post.content)}</p>
+    ${post.image_url ? `<img class="cover-image" src="${escapeHtml(post.image_url)}" alt="post image">` : ''}
+    <div class="chip-row" style="margin-top:16px;">
+      <span class="chip muted-chip">❤️ ${post.like_count}</span>
+      <span class="chip muted-chip">💬 ${post.comment_count}</span>
+      ${renderPostTypeChip(post.post_type)}
     </div>
   `;
 }
@@ -55,11 +63,16 @@ function renderComments(postId, comments, currentUser) {
           (comment) => `
             <div class="mini-card">
               <div class="action-row">
-                <strong>${comment.username}</strong>
-                ${currentUser && Number(comment.can_delete) ? `<button class="action-btn delete-comment-btn" data-id="${comment.comment_id}">刪除</button>` : ''}
+                <div class="profile-summary">
+                  <span class="avatar-circle" style="width:40px;height:40px;font-size:14px;">${escapeHtml(getUserInitials(comment.username))}</span>
+                  <div>
+                    <strong>${escapeHtml(comment.username)}</strong>
+                    <div class="meta-line">${formatDate(comment.created_at)}</div>
+                  </div>
+                </div>
+                ${currentUser && Number(comment.can_delete) ? `<button class="action-btn delete-comment-btn" data-id="${comment.comment_id}" type="button">刪除</button>` : ''}
               </div>
-              <p>${comment.content}</p>
-              <div class="meta-line">${formatDate(comment.created_at)}</div>
+              <p class="page-description">${escapeHtml(comment.content)}</p>
             </div>
           `
         )
@@ -88,10 +101,7 @@ function bindPostActions(postId, post, currentUser) {
   const commentForm = el('#comment-form');
 
   if (!currentUser) {
-    commentForm.querySelectorAll('textarea, button').forEach((field) => {
-      field.disabled = true;
-    });
-    showMessage(commentStatus, '請先登入後再留言或按讚', true);
+    disableFormWithMessage(commentForm, '請先登入後再留言或按讚', commentStatus);
   }
 
   el('#like-btn')?.addEventListener('click', async () => {
@@ -142,6 +152,13 @@ function bindPostActions(postId, post, currentUser) {
       showMessage(commentStatus, err.message, true);
     }
   });
+}
+
+function renderPostTypeChip(postType) {
+  if (!postType || String(postType).toLowerCase() === 'text') {
+    return '';
+  }
+  return `<span class="chip muted-chip">${escapeHtml(postType)}</span>`;
 }
 
 initPostPage();

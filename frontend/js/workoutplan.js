@@ -10,8 +10,13 @@ async function initWorkoutPlanPage() {
 
   try {
     const query = currentUser ? `?user_id=${currentUser.user_id}` : '';
-    const plan = await API.get(`/workoutplans/${planId}${query}`);
+    const [boards, plan] = await Promise.all([
+      API.get('/boards'),
+      API.get(`/workoutplans/${planId}${query}`),
+    ]);
 
+    const activeBoard = boards.find((board) => board.sport_type === plan.sport_type);
+    renderBoardSidebar(boards, activeBoard?.board_id || null);
     renderPlan(plan, currentUser);
     bindWorkoutPlanActions(planId, plan, currentUser);
   } catch (err) {
@@ -21,28 +26,36 @@ async function initWorkoutPlanPage() {
 
 function renderPlan(plan, currentUser) {
   const isOwner = currentUser && Number(currentUser.user_id) === Number(plan.user_id);
-  const saveLabel = Number(plan.saved_by_viewer) ? '取消收藏' : '收藏計畫';
+  const saveLabel = Number(plan.saved_by_viewer) ? '取消收藏' : '🔖 收藏';
 
   el('#plan-detail').innerHTML = `
+    <p class="eyebrow">${escapeHtml(plan.sport_type)}</p>
     <div class="action-row">
       <div>
-        <p class="eyebrow">${plan.sport_type}</p>
-        <h1>${plan.title}</h1>
-        <div class="meta-line">by ${plan.username} · ${formatDate(plan.created_at)}</div>
+        <h1>${escapeHtml(plan.title)}</h1>
+        <div class="meta-line">建立者 ${escapeHtml(plan.username)} · ${formatDate(plan.created_at)}</div>
       </div>
       <div class="chip-row">
-        <button id="save-plan-btn" class="primary-btn" ${currentUser ? '' : 'disabled'}>${saveLabel}</button>
-        ${isOwner ? '<button id="delete-plan-btn" class="gray-btn">刪除計畫</button>' : ''}
+        <button id="save-plan-btn" class="primary-btn" type="button" ${currentUser ? '' : 'disabled'}>${saveLabel}</button>
+        ${isOwner ? '<button id="delete-plan-btn" class="ghost-btn" type="button">刪除計畫</button>' : ''}
       </div>
     </div>
-    <div class="chip-row">
-      <span class="chip">${plan.difficulty_level}</span>
-      <span class="chip">${plan.exercise_name}</span>
-      <span class="chip">${plan.muscle_group}</span>
+    <div class="chip-row" style="margin-top:16px;">
+      <span class="chip">${escapeHtml(plan.difficulty_level)}</span>
+      <span class="chip muted-chip">${escapeHtml(plan.sport_type)}</span>
+      <span class="chip muted-chip">${escapeHtml(plan.muscle_group)}</span>
     </div>
-    <p>動作清單：${plan.exercise_name}</p>
-    <p>${plan.reps} reps × ${plan.sets} sets</p>
-    <p class="muted">目前收藏數：${plan.save_count}</p>
+    <div class="panel-card" style="margin-top:18px;background:var(--surface-soft);box-shadow:none;">
+      <h3>動作詳情</h3>
+      <div class="stack-list" style="margin-top:14px;">
+        <div class="mini-card">
+          <strong>${escapeHtml(plan.exercise_name)}</strong>
+          <div class="meta-line">肌肉群：${escapeHtml(plan.muscle_group)}</div>
+          <div class="meta-line">組數：${plan.sets} · 次數：${plan.reps}</div>
+        </div>
+      </div>
+    </div>
+    <div class="meta-line" style="margin-top:16px;">目前收藏數：${plan.save_count}</div>
   `;
 }
 
@@ -51,12 +64,7 @@ function bindWorkoutPlanActions(planId, plan, currentUser) {
   const sessionForm = el('#session-form');
 
   if (!currentUser) {
-    sessionForm.querySelectorAll('textarea, input, button').forEach((field) => {
-      if (field.name !== 'user_id') {
-        field.disabled = true;
-      }
-    });
-    showMessage(status, '請先登入後再收藏計畫或建立訓練紀錄', true);
+    disableFormWithMessage(sessionForm, '請先登入後再收藏計畫或開始訓練', status);
   }
 
   el('#save-plan-btn')?.addEventListener('click', async () => {

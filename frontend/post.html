@@ -7,38 +7,34 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="post">
-  <div class="app-shell">
-    <main class="phone-shell">
-      <header class="topbar">
-        <div class="topbar-row">
-          <div>
-            <div class="page-title">貼文詳情</div>
-            <div class="brand-subtitle">內容、留言、按讚</div>
-          </div>
-          <a class="gray-btn" href="/board.html">返回專欄</a>
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+    <div class="site-body">
+      <aside id="board-sidebar" class="sidebar"></aside>
+      <main class="main-content">
+        <div class="page-stack narrow">
+          <section id="mobile-board-bar" class="mobile-board-bar"></section>
+          <section id="post-detail" class="panel-card"></section>
+
+          <section class="panel-card">
+            <div class="section-head">
+              <div>
+                <h2>留言區</h2>
+                <p class="section-copy">查看回覆並參與討論</p>
+              </div>
+            </div>
+            <form id="comment-form" class="inline-form">
+              <input type="hidden" name="user_id">
+              <textarea name="content" placeholder="輸入你的留言" required></textarea>
+              <button type="submit" class="primary-btn">送出留言</button>
+            </form>
+            <div id="comment-status" class="status-line"></div>
+            <div id="comment-list" class="stack-list"></div>
+          </section>
         </div>
-      </header>
-
-      <section class="page-content">
-        <section id="post-detail" class="panel-card"></section>
-
-        <section class="panel-card">
-          <div class="section-head">
-            <h2>留言區</h2>
-            <span class="helper-text">Comments</span>
-          </div>
-          <form id="comment-form" class="inline-form">
-            <input type="hidden" name="user_id">
-            <textarea name="content" placeholder="新增留言" required></textarea>
-            <button type="submit" class="primary-btn">送出留言</button>
-          </form>
-          <div id="comment-status" class="status-line"></div>
-          <div id="comment-list" class="stack-list"></div>
-        </section>
-      </section>
-
-      <nav id="bottom-nav" class="bottom-nav"></nav>
-    </main>
+      </main>
+    </div>
+    <nav id="bottom-nav" class="bottom-nav"></nav>
   </div>
   <script src="/js/app.js"></script>
   <script src="/js/post.js"></script>

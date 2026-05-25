@@ -1,15 +1,18 @@
-function showAuthScreen(name) {
-  const mapping = {
-    home: '#auth-home',
+function showAuthPanel(name) {
+  const panelMap = {
     login: '#auth-login',
     register: '#auth-register',
   };
 
-  document.querySelectorAll('.auth-screen').forEach((section) => {
-    section.classList.remove('active');
+  document.querySelectorAll('.auth-tab').forEach((button) => {
+    button.classList.toggle('active', button.dataset.authPanel === name);
   });
 
-  const target = el(mapping[name] || mapping.home);
+  document.querySelectorAll('.auth-panel').forEach((panel) => {
+    panel.classList.remove('active');
+  });
+
+  const target = el(panelMap[name] || panelMap.login);
   if (target) {
     target.classList.add('active');
   }
@@ -24,13 +27,11 @@ function initAuthPage() {
   const mode = getParams().get('mode');
 
   if (mode === 'login' || mode === 'register') {
-    showAuthScreen(mode);
+    showAuthPanel(mode);
   }
 
-  document.querySelectorAll('[data-auth-page]').forEach((button) => {
-    button.addEventListener('click', () => {
-      showAuthScreen(button.dataset.authPage);
-    });
+  document.querySelectorAll('.auth-tab').forEach((button) => {
+    button.addEventListener('click', () => showAuthPanel(button.dataset.authPanel));
   });
 
   loginForm.addEventListener('submit', async (event) => {
