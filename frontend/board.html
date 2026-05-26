@@ -7,16 +7,97 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="boards">
-  <div class="app-shell">
-    <main class="phone-shell">
-      <header class="topbar">
-        <div class="topbar-row">
-          <div>
-            <div class="page-title">運動專欄</div>
-            <div id="board-subtitle" class="brand-subtitle">選擇你今天的主題</div>
-          </div>
-          <button id="header-auth-btn" type="button" class="gray-btn">登入</button>
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+    <div class="site-body">
+      <aside id="board-sidebar" class="sidebar"></aside>
+      <main class="main-content">
+        <div class="page-stack">
+          <section id="mobile-board-bar" class="mobile-board-bar"></section>
+          <section id="board-hero" class="page-hero"></section>
+
+          <section class="panel-card">
+            <div class="tab-row">
+              <button class="tab-btn active" data-tab="posts" type="button">貼文</button>
+              <button class="tab-btn" data-tab="plans" type="button">訓練計畫</button>
+              <button class="tab-btn" data-tab="invitations" type="button">揪團</button>
+            </div>
+          </section>
+
+          <section id="tab-posts" class="tab-panel active">
+            <div class="grid-2">
+              <article class="panel-card">
+                <div class="section-head">
+                  <div>
+                    <h3>最新貼文</h3>
+                    <p class="section-copy">這個專欄的討論內容</p>
+                  </div>
+                </div>
+                <div id="board-posts" class="stack-list"></div>
+              </article>
+
+              <article class="panel-card">
+                <div class="section-head">
+                  <div>
+                    <h3>新增貼文</h3>
+                    <p class="section-copy">分享近況與圖片連結</p>
+                  </div>
+                </div>
+                <form id="post-form" class="inline-form">
+                  <input type="hidden" name="user_id">
+                  <input type="hidden" name="post_type" value="text">
+                  <textarea name="content" placeholder="分享你的訓練內容" required></textarea>
+                  <input type="url" name="image_url" placeholder="圖片網址（選填）">
+                  <button type="submit" class="primary-btn">送出貼文</button>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <section id="tab-plans" class="tab-panel">
+            <article class="panel-card">
+              <div class="section-head">
+                <div>
+                  <h3>訓練計畫</h3>
+                  <p class="section-copy">依運動類型篩選公開計畫</p>
+                </div>
+              </div>
+              <div id="board-plans" class="card-grid"></div>
+            </article>
+          </section>
+
+          <section id="tab-invitations" class="tab-panel">
+            <div class="grid-2">
+              <article class="panel-card">
+                <div class="section-head">
+                  <div>
+                    <h3>揪團列表</h3>
+                    <p class="section-copy">加入你有興趣的活動</p>
+                  </div>
+                </div>
+                <div id="board-invitations" class="stack-list"></div>
+              </article>
+
+              <article class="panel-card">
+                <div class="section-head">
+                  <div>
+                    <h3>建立揪團</h3>
+                    <p class="section-copy">輸入活動資訊快速發起</p>
+                  </div>
+                </div>
+                <form id="invitation-form" class="inline-form">
+                  <input type="hidden" name="user_id">
+                  <input type="text" name="title" placeholder="活動標題" required>
+                  <input type="text" name="location" placeholder="地點" required>
+                  <input type="datetime-local" name="event_time" required>
+                  <input type="number" name="max_participants" placeholder="人數上限" min="1" required>
+                  <button type="submit" class="secondary-btn">建立揪團</button>
+                </form>
+              </article>
+            </div>
+          </section>
         </div>
+<<<<<<< HEAD
       </header>
 
       <section class="page-content">
@@ -144,6 +225,11 @@
 
       <nav id="bottom-nav" class="bottom-nav"></nav>
     </main>
+=======
+      </main>
+    </div>
+    <nav id="bottom-nav" class="bottom-nav"></nav>
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
   </div>
 
   <script src="/js/app.js"></script>

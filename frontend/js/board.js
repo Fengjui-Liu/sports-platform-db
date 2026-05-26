@@ -45,6 +45,7 @@ async function initBoardPage() {
       return;
     }
 
+<<<<<<< HEAD
     renderBoardHero(board, posts.length);
     renderBoardPosts(posts);
     renderBoardPlans(plans.filter((plan) => plan.sport_type === board.sport_type));
@@ -56,6 +57,16 @@ async function initBoardPage() {
     bindBoardForms(boardId, currentUser, boards);
 
     if (composeMode) {
+=======
+    renderBoardSidebar(boards, boardId);
+    renderBoardHero(board, posts.length);
+    renderBoardPosts(posts);
+    renderBoardPlans(plans.filter((plan) => plan.sport_type === board.sport_type));
+    renderBoardInvitations(invitations.filter((item) => String(item.board_id) === String(boardId)), currentUser);
+    bindBoardForms(boardId, currentUser);
+
+    if (params.get('compose')) {
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
       document.querySelector('.tab-btn[data-tab="posts"]')?.click();
       el('#post-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -65,6 +76,7 @@ async function initBoardPage() {
   }
 }
 
+<<<<<<< HEAD
 function clearBoardContent() {
   const boardPosts = el('#board-posts');
   const boardPlans = el('#board-plans');
@@ -193,15 +205,23 @@ function renderBoardSelector(boards, activeBoardId) {
 function renderBoardHero(board, postCount) {
   el('#board-subtitle').textContent = board.description || '選擇你今天的主題';
 
+=======
+function renderBoardHero(board, postCount) {
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
   el('#board-hero').innerHTML = `
     <div>
-      <p class="eyebrow">${board.sport_type}</p>
-      <h1>${board.sport_type} 專欄</h1>
-      <p class="hero-copy">${board.description || '尚未提供描述'}</p>
+      <p class="eyebrow">${escapeHtml(board.sport_type)}</p>
+      <h1>${getBoardEmoji(board.sport_type)} ${escapeHtml(board.sport_type)} 專欄</h1>
+      <p class="page-description">${escapeHtml(board.description || '這裡是該運動專欄的交流空間。')}</p>
     </div>
     <div class="chip-row">
+<<<<<<< HEAD
       <span class="chip">${board.post_count || postCount || 0} 篇貼文</span>
       <span class="chip">${formatDate(board.created_at)}</span>
+=======
+      <span class="chip">${postCount} 篇貼文</span>
+      <span class="chip muted-chip">${formatDate(board.created_at)}</span>
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
     </div>
   `;
 }
@@ -213,11 +233,19 @@ function renderBoardPosts(posts) {
           (post) => `
             <a class="list-card" href="/post.html?id=${post.post_id}">
               <div class="action-row">
-                <strong>${post.username}</strong>
-                <span class="chip">${post.post_type}</span>
+                <div>
+                  <strong>${escapeHtml(post.username)}</strong>
+                  <div class="chip-row" style="margin-top:8px;">
+                    ${renderPostTypeChip(post.post_type)}
+                  </div>
+                </div>
+                <span class="meta-line">${formatDate(post.created_at)}</span>
               </div>
-              <p>${post.content}</p>
-              <div class="meta-line">❤️ ${post.like_count} · 💬 ${post.comment_count} · ${formatDate(post.created_at)}</div>
+              <p class="page-description">${escapeHtml(truncateText(post.content, 180))}</p>
+              <div class="chip-row">
+                <span class="chip muted-chip">❤️ ${post.like_count}</span>
+                <span class="chip muted-chip">💬 ${post.comment_count}</span>
+              </div>
             </a>
           `
         )
@@ -230,6 +258,7 @@ function renderBoardPlans(boardPlans) {
     ? boardPlans
         .map(
           (plan) => `
+<<<<<<< HEAD
             <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}">
               <strong>${plan.title}</strong>
               <div class="chip-row">
@@ -239,10 +268,48 @@ function renderBoardPlans(boardPlans) {
               <span>${plan.reps || 0} reps · ${plan.sets || 0} sets</span>
               <span class="muted">by ${plan.username || '未知使用者'}</span>
             </a>
+=======
+            <div class="mini-card plan-card">
+              <div class="action-row">
+                <div class="chip-row">
+                  <span class="chip">${escapeHtml(plan.difficulty_level)}</span>
+                  <span class="chip muted-chip">${escapeHtml(plan.sport_type || plan.exercise_name)}</span>
+                </div>
+                <button class="action-btn save-plan-btn" type="button" data-id="${plan.plan_id}" data-saved="${Number(plan.saved_by_viewer) ? 'true' : 'false'}">
+                  ${Number(plan.saved_by_viewer) ? '已收藏' : '🔖 收藏'}
+                </button>
+              </div>
+              <a href="/workoutplan.html?id=${plan.plan_id}">
+                <h3>${escapeHtml(plan.title)}</h3>
+                <p class="page-description">${escapeHtml(plan.exercise_name)} · ${plan.sets} sets · ${plan.reps} reps</p>
+                <div class="meta-line">收藏數 ${plan.save_count || 0} · by ${escapeHtml(plan.username)}</div>
+              </a>
+            </div>
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
           `
         )
         .join('')
     : createEmptyState('這個運動類型還沒有公開計畫');
+
+  document.querySelectorAll('.save-plan-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const user = requireCurrentUser('請先登入再收藏計畫');
+      if (!user) {
+        return;
+      }
+
+      try {
+        if (button.dataset.saved === 'true') {
+          await API.delete(`/workoutplans/${button.dataset.id}/save`, { user_id: user.user_id });
+        } else {
+          await API.post(`/workoutplans/${button.dataset.id}/save`, { user_id: user.user_id });
+        }
+        window.location.reload();
+      } catch (err) {
+        window.alert(err.message);
+      }
+    });
+  });
 }
 
 function renderBoardInvitations(items, currentUser) {
@@ -256,13 +323,17 @@ function renderBoardInvitations(items, currentUser) {
           return `
             <div class="list-card">
               <div class="action-row">
-                <strong>${item.title}</strong>
+                <div>
+                  <h3>${escapeHtml(item.title)}</h3>
+                  <p class="page-description">${escapeHtml(item.location)}</p>
+                </div>
                 <button class="action-btn invitation-action-btn" data-action="${actionType}" data-id="${item.invitation_id}" ${disabled}>${actionLabel}</button>
               </div>
-              <p>${item.location}</p>
-              <div class="meta-line">
-                ${item.participant_count} / ${item.max_participants} 人 · ${formatDate(item.event_time)} · by ${item.username}
+              <div class="chip-row">
+                <span class="chip muted-chip">${item.participant_count} / 上限${item.max_participants}人</span>
+                <span class="chip muted-chip">${formatDate(item.event_time)}</span>
               </div>
+              <div class="meta-line">發起人 ${escapeHtml(item.username)}</div>
             </div>
           `;
         })
@@ -310,6 +381,7 @@ function bindBoardForms(boardId, currentUser, boards) {
   }
 
   if (!currentUser) {
+<<<<<<< HEAD
     postForm.querySelectorAll('input, select, textarea, button').forEach((field) => {
       if (field.name !== 'user_id') {
         field.disabled = true;
@@ -348,6 +420,10 @@ function bindBoardForms(boardId, currentUser, boards) {
         '<div id="invitation-login-message" class="empty-state">未登入時不能建立揪團</div>'
       );
     }
+=======
+    disableFormWithMessage(postForm, '請先登入後再發文');
+    disableFormWithMessage(invitationForm, '請先登入後再建立揪團');
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
   }
 
   postForm.addEventListener('submit', async (event) => {
@@ -450,4 +526,15 @@ function bindBoardForms(boardId, currentUser, boards) {
   });
 }
 
+<<<<<<< HEAD
 initBoardPage();
+=======
+function renderPostTypeChip(postType) {
+  if (!postType || String(postType).toLowerCase() === 'text') {
+    return '';
+  }
+  return `<span class="chip muted-chip">${escapeHtml(postType)}</span>`;
+}
+
+initBoardPage();
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783

@@ -7,6 +7,22 @@ const API = {
   delete: (path, body) => request(path, { method: 'DELETE', body }),
 };
 
+const BOARD_EMOJI_MAP = {
+  basketball: '🏀',
+  soccer: '⚽',
+  football: '🏈',
+  baseball: '⚾',
+  tennis: '🎾',
+  badminton: '🏸',
+  running: '🏃',
+  cycling: '🚴',
+  swimming: '🏊',
+  yoga: '🧘',
+  fitness: '💪',
+  gym: '🏋️',
+  default: '🏅',
+};
+
 async function request(path, options = {}) {
   const config = {
     method: options.method || 'GET',
@@ -19,11 +35,9 @@ async function request(path, options = {}) {
 
   const response = await fetch(`${API_BASE_URL}${path}`, config);
   const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
     throw new Error(data.error || 'API request failed');
   }
-
   return data;
 }
 
@@ -69,6 +83,7 @@ function clearCurrentUser() {
   localStorage.removeItem('username');
 }
 
+<<<<<<< HEAD
 async function getDefaultBoardUrl(options = {}) {
   const boards = await API.get('/boards');
 
@@ -139,6 +154,8 @@ function renderBottomNav() {
     .join('');
 }
 
+=======
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
 function showMessage(target, text, isError = false) {
   if (!target) {
     if (text) {
@@ -148,11 +165,11 @@ function showMessage(target, text, isError = false) {
   }
 
   target.textContent = text;
-  target.style.color = isError ? '#c62828' : '';
+  target.classList.toggle('danger-text', Boolean(isError));
 }
 
 function createEmptyState(text) {
-  return `<div class="empty-state">${text}</div>`;
+  return `<div class="empty-state">${escapeHtml(text)}</div>`;
 }
 
 function currentUserIdOrBlank() {
@@ -165,7 +182,7 @@ function requireCurrentUser(message = '請先登入') {
 
   if (!user?.user_id) {
     window.alert(message);
-    window.location.href = '/auth.html';
+    window.location.href = '/auth.html?mode=login';
     return null;
   }
 
@@ -210,6 +227,7 @@ function setupTabs(container = document) {
   buttons.forEach((button) => {
     button.addEventListener('click', () => {
       const tab = button.dataset.tab;
+<<<<<<< HEAD
 
       container.querySelectorAll('.tab-btn').forEach((btn) => {
         btn.classList.remove('active');
@@ -228,6 +246,12 @@ function setupTabs(container = document) {
         container.querySelector(`#${tab}-form`) ||
         container.querySelector(`#${tab}`);
 
+=======
+      container.querySelectorAll('.tab-btn[data-tab]').forEach((btn) => btn.classList.remove('active'));
+      container.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.remove('active'));
+      button.classList.add('active');
+      const target = container.querySelector(`#tab-${tab}`);
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
       if (target) {
         target.classList.add('active');
       }
@@ -235,6 +259,7 @@ function setupTabs(container = document) {
   });
 }
 
+<<<<<<< HEAD
 function bindGlobalActions() {
   const headerAuthBtn = el('#header-auth-btn');
 
@@ -255,9 +280,187 @@ function bindGlobalActions() {
     logoutBtn.addEventListener('click', () => {
       clearCurrentUser();
       window.location.href = '/auth.html';
+=======
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function getUserInitials(name) {
+  const text = String(name || 'SP').trim();
+  return text.slice(0, 2).toUpperCase();
+}
+
+function getBoardEmoji(name) {
+  const key = String(name || '').toLowerCase();
+  return BOARD_EMOJI_MAP[key] || BOARD_EMOJI_MAP.default;
+}
+
+function truncateText(value, limit = 120) {
+  const text = String(value || '');
+  return text.length > limit ? `${text.slice(0, limit)}...` : text;
+}
+
+async function getDefaultBoardUrl(options = {}) {
+  const boards = await API.get('/boards');
+  if (!Array.isArray(boards) || boards.length === 0) {
+    throw new Error('目前沒有任何專欄');
+  }
+
+  const params = new URLSearchParams({ id: String(boards[0].board_id) });
+  if (options.compose) {
+    params.set('compose', '1');
+  }
+  return `/board.html?${params.toString()}`;
+}
+
+function renderTopNav() {
+  const container = el('#site-header');
+  if (!container) {
+    return;
+  }
+
+  const user = getCurrentUser();
+  const profileUrl = user ? `/profile.html?id=${user.user_id}` : '/auth.html?mode=login';
+
+  container.innerHTML = `
+    <a class="brand-link" href="/">
+      <span class="brand-logo">🏃</span>
+      <span class="brand-copy">
+        <span class="brand-title">SportBoard</span>
+        <span class="brand-subtitle">運動社群平台</span>
+      </span>
+    </a>
+    <div class="header-actions">
+      <span class="header-user">${user ? escapeHtml(user.username) : '尚未登入'}</span>
+      <a id="header-auth-btn" class="ghost-btn" href="${profileUrl}">${user ? '個人頁面' : '登入 / 註冊'}</a>
+      <button id="logout-btn-top" class="primary-btn" type="button" ${user ? '' : 'hidden'}>登出</button>
+    </div>
+  `;
+
+  el('#logout-btn-top')?.addEventListener('click', () => {
+    clearCurrentUser();
+    window.location.href = '/auth.html?mode=login';
+  });
+}
+
+function renderBottomNav() {
+  const nav = el('#bottom-nav');
+  if (!nav) {
+    return;
+  }
+
+  const user = getCurrentUser();
+  const page = document.body.dataset.page;
+  const links = [
+    { href: '/', label: '首頁', icon: '🏠', key: 'home' },
+    { href: '/board.html', label: '專欄', icon: '🏅', key: 'boards', useDefaultBoard: true },
+    { href: '/board.html?compose=1', label: '發文', icon: '✍️', key: 'compose', useDefaultBoard: true, compose: true },
+    { href: user ? `/profile.html?id=${user.user_id}` : '/auth.html', label: '我的', icon: '👤', key: 'profile' },
+  ];
+
+  nav.innerHTML = links
+    .map((link) => {
+      const active = page === link.key || (page === 'post' && link.key === 'boards') || (page === 'plans' && link.key === 'boards');
+      const attrs = link.useDefaultBoard
+        ? `data-use-default-board="true"${link.compose ? ' data-compose="true"' : ''}`
+        : '';
+      return `
+        <a class="bottom-link ${active ? 'active' : ''}" href="${link.href}" ${attrs}>
+          <span>${link.icon}</span>
+          <span>${link.label}</span>
+        </a>
+      `;
+    })
+    .join('');
+
+  nav.querySelectorAll('[data-use-default-board="true"]').forEach((link) => {
+    link.addEventListener('click', async (event) => {
+      event.preventDefault();
+      try {
+        const url = await getDefaultBoardUrl({ compose: link.dataset.compose === 'true' });
+        window.location.href = url;
+      } catch (err) {
+        window.alert(err.message);
+      }
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
     });
+  });
+}
+
+function renderBoardSidebar(boards, activeBoardId) {
+  const sidebar = el('#board-sidebar');
+  const mobileBar = el('#mobile-board-bar');
+  if (!sidebar && !mobileBar) {
+    return;
+  }
+
+  const links = boards.length
+    ? boards
+        .map((board) => {
+          const active = String(board.board_id) === String(activeBoardId);
+          const emoji = getBoardEmoji(board.sport_type);
+          return `
+            <a class="board-nav-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
+              <span class="board-nav-emoji">${emoji}</span>
+              <span>${escapeHtml(board.sport_type)}</span>
+            </a>
+          `;
+        })
+        .join('')
+    : createEmptyState('目前沒有任何專欄');
+
+  if (sidebar) {
+    sidebar.innerHTML = `
+      <div class="sidebar-card">
+        <div class="sidebar-title">運動專欄</div>
+        <div class="board-nav">${links}</div>
+      </div>
+    `;
+  }
+
+  if (mobileBar) {
+    mobileBar.innerHTML = boards.length
+      ? `<div class="mobile-board-list">${boards
+          .map((board) => {
+            const active = String(board.board_id) === String(activeBoardId);
+            return `
+              <a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
+                <span>${getBoardEmoji(board.sport_type)}</span>
+                <span>${escapeHtml(board.sport_type)}</span>
+              </a>
+            `;
+          })
+          .join('')}</div>`
+      : '';
   }
 }
 
+function disableFormWithMessage(form, message, statusTarget) {
+  if (!form) {
+    return;
+  }
+
+  form.querySelectorAll('input, textarea, button, select').forEach((field) => {
+    if (field.name !== 'user_id') {
+      field.disabled = true;
+    }
+  });
+
+  if (statusTarget) {
+    showMessage(statusTarget, message, true);
+  } else {
+    form.insertAdjacentHTML('beforebegin', createEmptyState(message));
+  }
+}
+
+renderTopNav();
 renderBottomNav();
+<<<<<<< HEAD
 bindGlobalActions();
+=======
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783

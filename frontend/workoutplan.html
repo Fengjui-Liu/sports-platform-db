@@ -7,38 +7,37 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="plans">
-  <div class="app-shell">
-    <main class="phone-shell">
-      <header class="topbar">
-        <div class="topbar-row">
-          <div>
-            <div class="page-title">訓練計畫</div>
-            <div class="brand-subtitle">Workout Plan Detail</div>
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+    <div class="site-body">
+      <aside id="board-sidebar" class="sidebar"></aside>
+      <main class="main-content">
+        <div class="page-stack">
+          <section id="mobile-board-bar" class="mobile-board-bar"></section>
+          <div class="detail-layout">
+            <section id="plan-detail" class="panel-card"></section>
+
+            <section class="panel-card">
+              <div class="section-head">
+                <div>
+                  <h2>開始訓練</h2>
+                  <p class="section-copy">記錄本次訓練備註與時間</p>
+                </div>
+              </div>
+              <form id="session-form" class="inline-form">
+                <input type="hidden" name="user_id">
+                <textarea name="notes" placeholder="這次訓練備註"></textarea>
+                <input type="datetime-local" name="start_time" required>
+                <input type="datetime-local" name="end_time" required>
+                <button type="submit" class="primary-btn">送出訓練紀錄</button>
+              </form>
+              <div id="plan-status" class="status-line"></div>
+            </section>
           </div>
-          <a class="gray-btn" href="/board.html">返回</a>
         </div>
-      </header>
-
-        <section class="page-content">
-          <section id="plan-detail" class="panel-card"></section>
-          <div id="plan-status" class="status-line"></div>
-          <section class="panel-card">
-            <div class="section-head">
-              <h2>開始訓練</h2>
-              <span class="helper-text">Session</span>
-            </div>
-          <form id="session-form" class="inline-form">
-            <input type="hidden" name="user_id">
-            <textarea name="notes" placeholder="這次訓練備註"></textarea>
-            <input type="datetime-local" name="start_time" required>
-            <input type="datetime-local" name="end_time" required>
-            <button type="submit" class="primary-btn">建立訓練紀錄</button>
-          </form>
-        </section>
-      </section>
-
-      <nav id="bottom-nav" class="bottom-nav"></nav>
-    </main>
+      </main>
+    </div>
+    <nav id="bottom-nav" class="bottom-nav"></nav>
   </div>
   <script src="/js/app.js"></script>
   <script src="/js/workoutplan.js"></script>

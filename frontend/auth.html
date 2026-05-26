@@ -7,52 +7,42 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="auth">
-  <div class="app-shell">
-    <main class="phone-shell">
-      <section id="auth-home" class="auth-screen active">
-        <div class="auth-brand">
-          <div class="brand-wordmark"><span>🏃‍♂️</span><span>SportBoard</span></div>
-          <div class="brand-slogan">Your Best Workout Partner</div>
+  <main class="auth-shell">
+    <section class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-logo">🏃</span>
+        <div class="brand-copy">
+          <span class="brand-title">SportBoard</span>
+          <span class="brand-subtitle">登入後參與貼文、按讚、留言與訓練紀錄</span>
         </div>
-        <div class="hero-actions" style="margin-top:60px;">
-          <button class="primary-btn" data-auth-page="login">登入</button>
-          <button class="gray-btn" data-auth-page="register">註冊</button>
-        </div>
-      </section>
+      </div>
 
-      <section id="auth-login" class="auth-screen">
-        <button class="back-btn" data-auth-page="home">返回</button>
-        <div class="auth-brand">
-          <div class="brand-wordmark"><span>🏃‍♂️</span><span>SportBoard</span></div>
-          <div class="brand-slogan">Your Best Workout Partner</div>
-        </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" type="button" data-auth-panel="login">登入</button>
+        <button class="auth-tab" type="button" data-auth-panel="register">註冊</button>
+      </div>
+
+      <section id="auth-login" class="auth-panel active">
         <form id="login-form" class="auth-form">
           <input type="text" name="username" placeholder="帳號" required>
           <input type="password" name="password" placeholder="密碼" required>
           <button type="submit" class="primary-btn">登入</button>
         </form>
-        <div id="login-status" class="status-line"></div>
+        <div id="login-status" class="auth-note status-line"></div>
       </section>
 
-      <section id="auth-register" class="auth-screen">
-        <button class="back-btn" data-auth-page="home">返回</button>
-        <div class="auth-brand">
-          <div class="brand-wordmark"><span>🏃‍♂️</span><span>SportBoard</span></div>
-          <div class="brand-slogan">Your Best Workout Partner</div>
-        </div>
+      <section id="auth-register" class="auth-panel">
         <form id="register-form" class="auth-form">
           <input type="text" name="username" placeholder="帳號" required>
           <input type="email" name="email" placeholder="Email" required>
           <input type="password" name="password" placeholder="密碼" required>
-          <button type="submit" class="gray-btn">註冊</button>
+          <button type="submit" class="primary-btn">註冊</button>
         </form>
-        <div id="register-status" class="status-line"></div>
-        <div id="register-next" class="status-line"></div>
+        <div id="register-status" class="auth-note status-line"></div>
+        <div id="register-next" class="auth-note status-line"></div>
       </section>
-
-      <nav id="bottom-nav" class="bottom-nav"></nav>
-    </main>
-  </div>
+    </section>
+  </main>
   <script src="/js/app.js"></script>
   <script src="/js/auth.js"></script>
 </body>
