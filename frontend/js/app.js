@@ -39,6 +39,7 @@ function formatDate(value) {
   if (!value) {
     return '未提供';
   }
+
   return new Date(value).toLocaleString('zh-TW', {
     year: 'numeric',
     month: '2-digit',
@@ -70,11 +71,13 @@ function clearCurrentUser() {
 
 async function getDefaultBoardUrl(options = {}) {
   const boards = await API.get('/boards');
+
   if (!Array.isArray(boards) || boards.length === 0) {
     throw new Error('目前沒有任何專欄');
   }
 
   const params = new URLSearchParams({ id: String(boards[0].board_id) });
+
   if (options.compose) {
     params.set('compose', '1');
   }
@@ -84,41 +87,56 @@ async function getDefaultBoardUrl(options = {}) {
 
 function renderBottomNav() {
   const nav = el('#bottom-nav');
+
   if (!nav) {
     return;
   }
 
   const user = getCurrentUser();
   const page = document.body.dataset.page;
+
   const links = [
-    { href: '/', label: '首頁', icon: '🏠', key: 'home' },
-    { href: '/board.html', label: '專欄', icon: '📋', key: 'boards', useDefaultBoard: true },
-    { href: '/board.html?compose=1', label: '發文', icon: '➕', key: 'compose', useDefaultBoard: true, compose: true },
-    { href: user ? `/profile.html?id=${user.user_id}` : '/profile.html', label: '我的', icon: '👤', key: 'profile' },
+    {
+      href: '/',
+      label: '首頁',
+      icon: '🏠',
+      key: 'home',
+    },
+    {
+      href: '/board.html',
+      label: '專欄',
+      icon: '📋',
+      key: 'boards',
+    },
+    {
+      href: '/board.html?compose=1',
+      label: '發文',
+      icon: '➕',
+      key: 'compose',
+    },
+    {
+      href: user ? `/profile.html?id=${user.user_id}` : '/profile.html',
+      label: '我的',
+      icon: '👤',
+      key: 'profile',
+    },
   ];
 
   nav.innerHTML = links
     .map((link) => {
-      const active = page === link.key || (page === 'post' && link.key === 'boards') || (page === 'plans' && link.key === 'boards');
-      const attrs = link.useDefaultBoard
-        ? `data-use-default-board="true"${link.compose ? ' data-compose="true"' : ''}`
-        : '';
-      return `<a class="bottom-link ${active ? 'active' : ''}" href="${link.href}" ${attrs}><span class="icon">${link.icon}</span><span>${link.label}</span></a>`;
+      const active =
+        page === link.key ||
+        (page === 'post' && link.key === 'boards') ||
+        (page === 'plans' && link.key === 'boards');
+
+      return `
+        <a class="bottom-link ${active ? 'active' : ''}" href="${link.href}">
+          <span class="icon">${link.icon}</span>
+          <span>${link.label}</span>
+        </a>
+      `;
     })
     .join('');
-
-  nav.querySelectorAll('[data-use-default-board="true"]').forEach((link) => {
-    link.addEventListener('click', async (event) => {
-      event.preventDefault();
-
-      try {
-        const url = await getDefaultBoardUrl({ compose: link.dataset.compose === 'true' });
-        window.location.href = url;
-      } catch (err) {
-        window.alert(err.message);
-      }
-    });
-  });
 }
 
 function showMessage(target, text, isError = false) {
@@ -144,11 +162,13 @@ function currentUserIdOrBlank() {
 
 function requireCurrentUser(message = '請先登入') {
   const user = getCurrentUser();
+
   if (!user?.user_id) {
     window.alert(message);
     window.location.href = '/auth.html';
     return null;
   }
+
   return user;
 }
 
@@ -156,11 +176,15 @@ function toApiDateTime(value) {
   if (!value) {
     return value;
   }
-  return value.length === 16 ? `${value.replace('T', ' ')}:00` : value.replace('T', ' ');
+
+  return value.length === 16
+    ? `${value.replace('T', ' ')}:00`
+    : value.replace('T', ' ');
 }
 
 function fillUserIdInputs(root = document) {
   const userId = currentUserIdOrBlank();
+
   root.querySelectorAll('input[name="user_id"]').forEach((input) => {
     if (!input.value && userId) {
       input.value = userId;
@@ -170,27 +194,40 @@ function fillUserIdInputs(root = document) {
 
 function serializeForm(form) {
   const data = Object.fromEntries(new FormData(form).entries());
+
   Object.keys(data).forEach((key) => {
     if (data[key] === '') {
       delete data[key];
     }
   });
+
   return data;
 }
 
 function setupTabs(container = document) {
   const buttons = container.querySelectorAll('.tab-btn[data-tab]');
+
   buttons.forEach((button) => {
     button.addEventListener('click', () => {
       const tab = button.dataset.tab;
+
       container.querySelectorAll('.tab-btn').forEach((btn) => {
         btn.classList.remove('active');
         btn.classList.add('muted');
       });
+
       button.classList.add('active');
       button.classList.remove('muted');
-      container.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.remove('active'));
-      const target = container.querySelector(`#tab-${tab}`) || container.querySelector(`#${tab}-form`) || container.querySelector(`#${tab}`);
+
+      container.querySelectorAll('.tab-panel').forEach((panel) => {
+        panel.classList.remove('active');
+      });
+
+      const target =
+        container.querySelector(`#tab-${tab}`) ||
+        container.querySelector(`#${tab}-form`) ||
+        container.querySelector(`#${tab}`);
+
       if (target) {
         target.classList.add('active');
       }
@@ -200,15 +237,20 @@ function setupTabs(container = document) {
 
 function bindGlobalActions() {
   const headerAuthBtn = el('#header-auth-btn');
+
   if (headerAuthBtn) {
     const user = getCurrentUser();
     headerAuthBtn.textContent = user ? user.username : '登入';
+
     headerAuthBtn.addEventListener('click', () => {
-      window.location.href = user ? `/profile.html?id=${user.user_id}` : '/auth.html';
+      window.location.href = user
+        ? `/profile.html?id=${user.user_id}`
+        : '/auth.html';
     });
   }
 
   const logoutBtn = el('#logout-btn-top');
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       clearCurrentUser();

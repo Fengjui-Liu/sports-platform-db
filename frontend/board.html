@@ -25,6 +25,13 @@
             <h2>專欄列表</h2>
             <span class="helper-text">Boards</span>
           </div>
+
+          <form id="board-form" class="inline-form">
+            <input type="text" name="sport_type" placeholder="新增專欄名稱，例如：羽球" required>
+            <input type="text" name="description" placeholder="專欄描述，例如：羽球交流與訓練討論">
+            <button type="submit" class="primary-btn">新增專欄</button>
+          </form>
+
           <div id="board-selector" class="stack-list"></div>
         </section>
 
@@ -44,14 +51,21 @@
               <h3>新增貼文</h3>
               <span class="helper-text">Create</span>
             </div>
+
             <form id="post-form" class="inline-form">
               <input type="hidden" name="user_id">
               <input type="hidden" name="post_type" value="text">
+
+              <select id="post-board-select" name="board_id" required>
+                <option value="">請選擇要發佈的專欄</option>
+              </select>
+
               <input type="url" name="image_url" placeholder="圖片網址">
               <textarea name="content" placeholder="分享訓練內容" required></textarea>
               <button type="submit" class="primary-btn">送出貼文</button>
             </form>
           </article>
+
           <article class="panel-card">
             <div class="section-head">
               <h3>貼文列表</h3>
@@ -62,6 +76,31 @@
         </section>
 
         <section id="tab-plans" class="tab-panel">
+          <article class="panel-card">
+            <div class="section-head">
+              <h3>新增訓練計畫</h3>
+              <span class="helper-text">Create Plan</span>
+            </div>
+
+            <form id="plan-form" class="inline-form">
+              <input type="hidden" name="user_id">
+              <input type="hidden" id="plan-sport-type" name="sport_type">
+
+              <select id="plan-board-select" name="board_id" required>
+                <option value="">請選擇要發佈的專欄</option>
+              </select>
+
+              <input type="text" name="title" placeholder="計畫標題，例如：新手籃球體能訓練" required>
+              <input type="text" name="difficulty_level" placeholder="難度，例如：初級 / 中級 / 高級" required>
+              <input type="text" name="exercise_name" placeholder="訓練項目，例如：深蹲、折返跑、投籃" required>
+              <input type="text" name="muscle_group" placeholder="訓練部位，例如：腿部、核心、全身">
+              <input type="number" name="reps" placeholder="次數 reps" min="0">
+              <input type="number" name="sets" placeholder="組數 sets" min="0">
+
+              <button type="submit" class="primary-btn">送出計畫</button>
+            </form>
+          </article>
+
           <article class="panel-card">
             <div class="section-head">
               <h3>訓練計畫</h3>
@@ -77,8 +116,14 @@
               <h3>建立揪團</h3>
               <span class="helper-text">Invite</span>
             </div>
+
             <form id="invitation-form" class="inline-form">
               <input type="hidden" name="user_id">
+
+              <select id="invitation-board-select" name="board_id" required>
+                <option value="">請選擇要發佈的專欄</option>
+              </select>
+
               <input type="text" name="title" placeholder="活動標題" required>
               <input type="text" name="location" placeholder="地點" required>
               <input type="datetime-local" name="event_time" required>
@@ -86,6 +131,7 @@
               <button type="submit" class="gray-btn">建立揪團</button>
             </form>
           </article>
+
           <article class="panel-card">
             <div class="section-head">
               <h3>揪團列表</h3>
@@ -99,6 +145,7 @@
       <nav id="bottom-nav" class="bottom-nav"></nav>
     </main>
   </div>
+
   <script src="/js/app.js"></script>
   <script src="/js/board.js"></script>
 </body>
