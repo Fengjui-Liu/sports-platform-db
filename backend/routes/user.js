@@ -7,43 +7,66 @@ const { ensureRequired, parseId, sendServerError } = require('./utils');
 
 router.use('/:id/bodyrecord', bodyRecordRoutes);
 
-// 註冊
 router.post('/register', async (req, res) => {
   if (!ensureRequired(res, req.body, ['username', 'password', 'email'])) {
     return;
   }
 
   const { username, password, email } = req.body;
+
   try {
     const passwordHash = await bcrypt.hash(password, 10);
+
     const [result] = await db.query(
       'INSERT INTO USER (username, password, email) VALUES (?, ?, ?)',
       [username, passwordHash, email]
     );
-    res.status(201).json({ message: '註冊成功', user_id: result.insertId });
+
+    res.status(201).json({
+      message: '註冊成功',
+      user_id: result.insertId,
+    });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({
+        error: '此帳號或 Email 已經被註冊，請改用其他資料或直接登入',
+      });
+    }
+
     sendServerError(res, err);
   }
 });
 
-// 登入
 router.post('/login', async (req, res) => {
   if (!ensureRequired(res, req.body, ['username', 'password'])) {
     return;
   }
 
   const { username, password } = req.body;
+
   try {
     const [rows] = await db.query(
       'SELECT user_id, username, password, email, bio, profile_image FROM USER WHERE username = ?',
       [username]
     );
-    if (rows.length === 0) return res.status(401).json({ error: '帳號或密碼錯誤' });
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: '帳號或密碼錯誤' });
+    }
+
     const user = rows[0];
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) return res.status(401).json({ error: '帳號或密碼錯誤' });
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: '帳號或密碼錯誤' });
+    }
+
     delete user.password;
-    res.json({ message: '登入成功', user: rows[0] });
+
+    res.json({
+      message: '登入成功',
+      user,
+    });
   } catch (err) {
     sendServerError(res, err);
   }
@@ -51,6 +74,7 @@ router.post('/login', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const userId = parseId(req.params.id);
+
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
@@ -78,25 +102,30 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: '找不到使用者' });
     }
 
-    res.json({ ...userRows[0], ...statsRows[0] });
+    res.json({
+      ...userRows[0],
+      ...statsRows[0],
+    });
   } catch (err) {
     sendServerError(res, err);
   }
 });
 
-// 修改個人資料
 router.put('/:id', async (req, res) => {
   const userId = parseId(req.params.id);
+
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
 
   const { bio, profile_image } = req.body;
+
   try {
     await db.query(
       'UPDATE USER SET bio = ?, profile_image = ? WHERE user_id = ?',
       [bio || '', profile_image || '', userId]
     );
+
     res.json({ message: '更新成功' });
   } catch (err) {
     sendServerError(res, err);
@@ -105,6 +134,7 @@ router.put('/:id', async (req, res) => {
 
 router.post('/:id/follow', async (req, res) => {
   const followeeId = parseId(req.params.id);
+
   if (Number.isNaN(followeeId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
@@ -124,6 +154,7 @@ router.post('/:id/follow', async (req, res) => {
        ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)`,
       [followeeId, req.body.follower_id]
     );
+
     res.json({ message: '追蹤成功' });
   } catch (err) {
     sendServerError(res, err);
@@ -132,6 +163,7 @@ router.post('/:id/follow', async (req, res) => {
 
 router.delete('/:id/follow', async (req, res) => {
   const followeeId = parseId(req.params.id);
+
   if (Number.isNaN(followeeId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
@@ -141,10 +173,11 @@ router.delete('/:id/follow', async (req, res) => {
   }
 
   try {
-    await db.query('DELETE FROM USERFOLLOW WHERE followee_id = ? AND follower_id = ?', [
-      followeeId,
-      req.body.follower_id,
-    ]);
+    await db.query(
+      'DELETE FROM USERFOLLOW WHERE followee_id = ? AND follower_id = ?',
+      [followeeId, req.body.follower_id]
+    );
+
     res.json({ message: '取消追蹤成功' });
   } catch (err) {
     sendServerError(res, err);
@@ -153,13 +186,14 @@ router.delete('/:id/follow', async (req, res) => {
 
 router.get('/:id/posts', async (req, res) => {
   const userId = parseId(req.params.id);
+
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
 
   try {
     const [rows] = await db.query(
-      `SELECT p.post_id, p.board_id, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.board_id, p.post_type, p.title, p.content, p.image_url, p.created_at,
               b.sport_type AS board_name,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count
@@ -172,6 +206,7 @@ router.get('/:id/posts', async (req, res) => {
        ORDER BY p.created_at DESC, p.post_id DESC`,
       [userId]
     );
+
     res.json(rows);
   } catch (err) {
     sendServerError(res, err);
@@ -180,6 +215,7 @@ router.get('/:id/posts', async (req, res) => {
 
 router.get('/:id/saved-plans', async (req, res) => {
   const userId = parseId(req.params.id);
+
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
@@ -195,6 +231,7 @@ router.get('/:id/saved-plans', async (req, res) => {
        ORDER BY s.created_at DESC, w.plan_id DESC`,
       [userId]
     );
+
     res.json(rows);
   } catch (err) {
     sendServerError(res, err);

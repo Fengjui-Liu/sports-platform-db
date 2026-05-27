@@ -24,6 +24,7 @@ async function initBoardPage() {
 
       if (composeMode) {
         document.querySelector('.tab-btn[data-tab="posts"]')?.click();
+        el('#post-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
 
       bindBoardForms(null, currentUser, boards);
@@ -45,7 +46,6 @@ async function initBoardPage() {
       return;
     }
 
-<<<<<<< HEAD
     renderBoardHero(board, posts.length);
     renderBoardPosts(posts);
     renderBoardPlans(plans.filter((plan) => plan.sport_type === board.sport_type));
@@ -57,16 +57,6 @@ async function initBoardPage() {
     bindBoardForms(boardId, currentUser, boards);
 
     if (composeMode) {
-=======
-    renderBoardSidebar(boards, boardId);
-    renderBoardHero(board, posts.length);
-    renderBoardPosts(posts);
-    renderBoardPlans(plans.filter((plan) => plan.sport_type === board.sport_type));
-    renderBoardInvitations(invitations.filter((item) => String(item.board_id) === String(boardId)), currentUser);
-    bindBoardForms(boardId, currentUser);
-
-    if (params.get('compose')) {
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
       document.querySelector('.tab-btn[data-tab="posts"]')?.click();
       el('#post-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -76,7 +66,6 @@ async function initBoardPage() {
   }
 }
 
-<<<<<<< HEAD
 function clearBoardContent() {
   const boardPosts = el('#board-posts');
   const boardPlans = el('#board-plans');
@@ -186,14 +175,14 @@ function renderBoardSelector(boards, activeBoardId) {
           (board) => `
             <a class="mini-card" href="/board.html?id=${board.board_id}">
               <div class="action-row">
-                <strong>${board.sport_type}</strong>
+                <strong>${escapeHtml(board.sport_type)}</strong>
                 ${
                   String(board.board_id) === String(activeBoardId)
                     ? '<span class="chip active">目前專欄</span>'
                     : ''
                 }
               </div>
-              <p>${board.description || '尚未提供描述'}</p>
+              <p>${escapeHtml(board.description || '尚未提供描述')}</p>
               <div class="meta-line">累積貼文數：${board.post_count || 0} 篇</div>
             </a>
           `
@@ -205,9 +194,6 @@ function renderBoardSelector(boards, activeBoardId) {
 function renderBoardHero(board, postCount) {
   el('#board-subtitle').textContent = board.description || '選擇你今天的主題';
 
-=======
-function renderBoardHero(board, postCount) {
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
   el('#board-hero').innerHTML = `
     <div>
       <p class="eyebrow">${escapeHtml(board.sport_type)}</p>
@@ -215,13 +201,8 @@ function renderBoardHero(board, postCount) {
       <p class="page-description">${escapeHtml(board.description || '這裡是該運動專欄的交流空間。')}</p>
     </div>
     <div class="chip-row">
-<<<<<<< HEAD
       <span class="chip">${board.post_count || postCount || 0} 篇貼文</span>
-      <span class="chip">${formatDate(board.created_at)}</span>
-=======
-      <span class="chip">${postCount} 篇貼文</span>
       <span class="chip muted-chip">${formatDate(board.created_at)}</span>
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
     </div>
   `;
 }
@@ -258,22 +239,11 @@ function renderBoardPlans(boardPlans) {
     ? boardPlans
         .map(
           (plan) => `
-<<<<<<< HEAD
-            <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}">
-              <strong>${plan.title}</strong>
-              <div class="chip-row">
-                <span class="chip">${plan.difficulty_level || '未設定難度'}</span>
-                <span class="chip">${plan.exercise_name || '未設定項目'}</span>
-              </div>
-              <span>${plan.reps || 0} reps · ${plan.sets || 0} sets</span>
-              <span class="muted">by ${plan.username || '未知使用者'}</span>
-            </a>
-=======
             <div class="mini-card plan-card">
               <div class="action-row">
                 <div class="chip-row">
-                  <span class="chip">${escapeHtml(plan.difficulty_level)}</span>
-                  <span class="chip muted-chip">${escapeHtml(plan.sport_type || plan.exercise_name)}</span>
+                  <span class="chip">${escapeHtml(plan.difficulty_level || '未設定難度')}</span>
+                  <span class="chip muted-chip">${escapeHtml(plan.sport_type || plan.exercise_name || '未設定項目')}</span>
                 </div>
                 <button class="action-btn save-plan-btn" type="button" data-id="${plan.plan_id}" data-saved="${Number(plan.saved_by_viewer) ? 'true' : 'false'}">
                   ${Number(plan.saved_by_viewer) ? '已收藏' : '🔖 收藏'}
@@ -281,11 +251,10 @@ function renderBoardPlans(boardPlans) {
               </div>
               <a href="/workoutplan.html?id=${plan.plan_id}">
                 <h3>${escapeHtml(plan.title)}</h3>
-                <p class="page-description">${escapeHtml(plan.exercise_name)} · ${plan.sets} sets · ${plan.reps} reps</p>
-                <div class="meta-line">收藏數 ${plan.save_count || 0} · by ${escapeHtml(plan.username)}</div>
+                <p class="page-description">${escapeHtml(plan.exercise_name || '未設定項目')} · ${plan.sets || 0} sets · ${plan.reps || 0} reps</p>
+                <div class="meta-line">收藏數 ${plan.save_count || 0} · by ${escapeHtml(plan.username || '未知使用者')}</div>
               </a>
             </div>
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
           `
         )
         .join('')
@@ -294,16 +263,22 @@ function renderBoardPlans(boardPlans) {
   document.querySelectorAll('.save-plan-btn').forEach((button) => {
     button.addEventListener('click', async () => {
       const user = requireCurrentUser('請先登入再收藏計畫');
+
       if (!user) {
         return;
       }
 
       try {
         if (button.dataset.saved === 'true') {
-          await API.delete(`/workoutplans/${button.dataset.id}/save`, { user_id: user.user_id });
+          await API.delete(`/workoutplans/${button.dataset.id}/save`, {
+            user_id: user.user_id,
+          });
         } else {
-          await API.post(`/workoutplans/${button.dataset.id}/save`, { user_id: user.user_id });
+          await API.post(`/workoutplans/${button.dataset.id}/save`, {
+            user_id: user.user_id,
+          });
         }
+
         window.location.reload();
       } catch (err) {
         window.alert(err.message);
@@ -381,49 +356,9 @@ function bindBoardForms(boardId, currentUser, boards) {
   }
 
   if (!currentUser) {
-<<<<<<< HEAD
-    postForm.querySelectorAll('input, select, textarea, button').forEach((field) => {
-      if (field.name !== 'user_id') {
-        field.disabled = true;
-      }
-    });
-
-    planForm.querySelectorAll('input, select, button').forEach((field) => {
-      if (field.name !== 'user_id') {
-        field.disabled = true;
-      }
-    });
-
-    invitationForm.querySelectorAll('input, select, button').forEach((field) => {
-      if (field.name !== 'user_id') {
-        field.disabled = true;
-      }
-    });
-
-    if (!document.querySelector('#post-login-message')) {
-      postForm.insertAdjacentHTML(
-        'beforebegin',
-        '<div id="post-login-message" class="empty-state">未登入時不能發文</div>'
-      );
-    }
-
-    if (!document.querySelector('#plan-login-message')) {
-      planForm.insertAdjacentHTML(
-        'beforebegin',
-        '<div id="plan-login-message" class="empty-state">未登入時不能新增訓練計畫</div>'
-      );
-    }
-
-    if (!document.querySelector('#invitation-login-message')) {
-      invitationForm.insertAdjacentHTML(
-        'beforebegin',
-        '<div id="invitation-login-message" class="empty-state">未登入時不能建立揪團</div>'
-      );
-    }
-=======
     disableFormWithMessage(postForm, '請先登入後再發文');
+    disableFormWithMessage(planForm, '請先登入後再新增訓練計畫');
     disableFormWithMessage(invitationForm, '請先登入後再建立揪團');
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
   }
 
   postForm.addEventListener('submit', async (event) => {
@@ -526,15 +461,12 @@ function bindBoardForms(boardId, currentUser, boards) {
   });
 }
 
-<<<<<<< HEAD
-initBoardPage();
-=======
 function renderPostTypeChip(postType) {
   if (!postType || String(postType).toLowerCase() === 'text') {
     return '';
   }
+
   return `<span class="chip muted-chip">${escapeHtml(postType)}</span>`;
 }
 
 initBoardPage();
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
