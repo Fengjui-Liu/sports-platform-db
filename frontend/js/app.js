@@ -111,34 +111,8 @@ function requireCurrentUser(message = '請先登入') {
     window.location.href = '/auth.html?mode=login';
     return null;
   }
-
-  if (mobileBar) {
-    mobileBar.innerHTML = boards.length
-      ? `<div class="mobile-board-list">${boards
-          .map((board) => {
-            const active = String(board.board_id) === String(activeBoardId);
-            return `
-              <a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
-                <span>${getBoardEmoji(board.sport_type)}</span>
-                <span>${escapeHtml(board.sport_type)}</span>
-              </a>
-            `;
-          })
-          .join('')}</div>`
-      : '';
-  }
+  return user;
 }
-
-function disableFormWithMessage(form, message, statusTarget) {
-  if (!form) {
-    return;
-  }
-
-  form.querySelectorAll('input, textarea, button, select').forEach((field) => {
-    if (field.name !== 'user_id') {
-      field.disabled = true;
-    }
-  });
 
 function serializeForm(form) {
   const data = Object.fromEntries(new FormData(form).entries());
