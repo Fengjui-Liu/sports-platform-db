@@ -57,7 +57,12 @@ async function initBoardPage() {
       }),
     ]);
 
-    const boardPlans = plans.filter((plan) => String(plan.board_id) === String(boardId) || plan.sport_type === board.sport_type);
+    const boardPlans = plans.filter((plan) => {
+      return (
+        String(plan.board_id) === String(boardId) ||
+        String(plan.sport_type) === String(board.sport_type)
+      );
+    });
 
     renderBoardHero(board, posts.length, boardPlans, invitations);
     renderBoardPosts(posts);
@@ -103,7 +108,9 @@ function renderBoardHero(board, fallbackPostCount = 0, plans = [], invitations =
       <div>
         <p class="eyebrow">${escapeHtml(board.sport_type)}</p>
         <h1>${getBoardEmoji(board.sport_type)} ${escapeHtml(board.sport_type)} 專欄</h1>
-        <p class="page-description">${escapeHtml(board.description || '這裡是該運動專欄的交流空間。')}</p>
+        <p class="page-description">
+          ${escapeHtml(board.description || '這裡是該運動專欄的交流空間。')}
+        </p>
       </div>
 
       <div 
@@ -142,11 +149,15 @@ function renderBoardPosts(posts) {
                     ${renderPostTypeChip(post.post_type)}
                   </div>
                 </div>
+
                 <span class="meta-line">${formatDate(post.created_at)}</span>
               </div>
 
               <h3>${escapeHtml(post.title || '未命名貼文')}</h3>
-              <p class="page-description">${escapeHtml(truncateText(post.content || '', 180))}</p>
+
+              <p class="page-description">
+                ${escapeHtml(truncateText(post.content || '', 180))}
+              </p>
 
               <div class="chip-row">
                 <span class="chip muted-chip">❤️ ${post.like_count || 0}</span>
@@ -174,16 +185,33 @@ function renderBoardPlans(boardPlans) {
               <div class="action-row">
                 <div class="chip-row">
                   <span class="chip">${escapeHtml(plan.difficulty_level || '未設定難度')}</span>
-                  <span class="chip muted-chip">${escapeHtml(plan.sport_type || plan.exercise_name || '未設定項目')}</span>
+                  <span class="chip muted-chip">
+                    ${escapeHtml(plan.sport_type || plan.exercise_name || '未設定項目')}
+                  </span>
                 </div>
-                <button class="action-btn save-plan-btn" type="button" data-id="${plan.plan_id}" data-saved="${Number(plan.saved_by_viewer) ? 'true' : 'false'}">
+
+                <button 
+                  class="action-btn save-plan-btn" 
+                  type="button" 
+                  data-id="${plan.plan_id}" 
+                  data-saved="${Number(plan.saved_by_viewer) ? 'true' : 'false'}"
+                >
                   ${Number(plan.saved_by_viewer) ? '已收藏' : '🔖 收藏'}
                 </button>
               </div>
+
               <a href="/workoutplan.html?id=${plan.plan_id}">
                 <h3>${escapeHtml(plan.title)}</h3>
-                <p class="page-description">${escapeHtml(plan.exercise_name || '未設定項目')} · ${plan.sets || 0} sets · ${plan.reps || 0} reps</p>
-                <div class="meta-line">收藏數 ${plan.save_count || 0} · by ${escapeHtml(plan.username || '未知使用者')}</div>
+
+                <p class="page-description">
+                  ${escapeHtml(plan.exercise_name || '未設定項目')} · 
+                  ${plan.sets || 0} sets · 
+                  ${plan.reps || 0} reps
+                </p>
+
+                <div class="meta-line">
+                  收藏數 ${plan.save_count || 0} · by ${escapeHtml(plan.username || '未知使用者')}
+                </div>
               </a>
             </div>
           `
@@ -311,6 +339,7 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
                   <h3>${escapeHtml(item.title)}</h3>
                   <p class="page-description">${escapeHtml(item.location)}</p>
                 </div>
+
                 <button 
                   class="action-btn invitation-action-btn${dangerClass}" 
                   data-action="${actionState.action}" 
@@ -323,11 +352,15 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
               </div>
 
               <div class="chip-row">
-                <span class="chip muted-chip">${item.participant_count || 0} / 上限${item.max_participants}人</span>
+                <span class="chip muted-chip">
+                  ${item.participant_count || 0} / 上限${item.max_participants}人
+                </span>
                 <span class="chip muted-chip">${formatDate(item.event_time)}</span>
               </div>
 
-              <div class="meta-line">發起人 ${escapeHtml(item.username || '未知使用者')}</div>
+              <div class="meta-line">
+                發起人 ${escapeHtml(item.username || '未知使用者')}
+              </div>
 
               ${renderParticipantList(item.participant_usernames)}
             </div>
@@ -362,7 +395,9 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
             user_id: user.user_id,
           });
         } else if (button.dataset.action === 'cancel') {
-          const confirmed = window.confirm('確定要取消這個揪團嗎？取消後所有參與紀錄也會刪除。');
+          const confirmed = window.confirm(
+            '確定要取消這個揪團嗎？取消後所有參與紀錄也會刪除。'
+          );
 
           if (!confirmed) {
             return;

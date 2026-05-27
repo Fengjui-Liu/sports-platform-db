@@ -22,10 +22,10 @@ router.get('/', async (_req, res) => {
           GROUP BY board_id
        ) pc ON pc.board_id = b.board_id
        LEFT JOIN (
-          SELECT board_id, COUNT(*) AS plan_count
+          SELECT sport_type, COUNT(*) AS plan_count
           FROM WORKOUTPLAN
-          GROUP BY board_id
-       ) wc ON wc.board_id = b.board_id
+          GROUP BY sport_type
+       ) wc ON wc.sport_type = b.sport_type
        LEFT JOIN (
           SELECT board_id, COUNT(*) AS invitation_count
           FROM WORKOUTINVITATION
@@ -57,10 +57,10 @@ router.get('/', async (_req, res) => {
             GROUP BY board_id
          ) pc ON pc.board_id = b.board_id
          LEFT JOIN (
-            SELECT board_id, COUNT(*) AS plan_count
+            SELECT sport_type, COUNT(*) AS plan_count
             FROM WORKOUTPLAN
-            GROUP BY board_id
-         ) wc ON wc.board_id = b.board_id
+            GROUP BY sport_type
+         ) wc ON wc.sport_type = b.sport_type
          LEFT JOIN (
             SELECT board_id, COUNT(*) AS invitation_count
             FROM WORKOUTINVITATION
@@ -122,17 +122,35 @@ router.get('/:id/posts', async (req, res) => {
     }
 
     const [rows] = await db.query(
-      `SELECT p.post_id, p.user_id, p.board_id, p.post_type, p.title, p.content, p.image_url, p.created_at,
-              u.username, u.profile_image,
-              COUNT(DISTINCT l.user_id) AS like_count,
-              COUNT(DISTINCT c.comment_id) AS comment_count
+      `SELECT 
+          p.post_id,
+          p.user_id,
+          p.board_id,
+          p.post_type,
+          p.title,
+          p.content,
+          p.image_url,
+          p.created_at,
+          u.username,
+          u.profile_image,
+          COUNT(DISTINCT l.user_id) AS like_count,
+          COUNT(DISTINCT c.comment_id) AS comment_count
        FROM POST p
        JOIN USER u ON u.user_id = p.user_id
        LEFT JOIN POSTLIKE l ON l.post_id = p.post_id
        LEFT JOIN COMMENT c ON c.post_id = p.post_id
        WHERE p.board_id = ?
-       GROUP BY p.post_id, p.user_id, p.board_id, p.post_type, p.title, p.content, p.image_url, p.created_at,
-                u.username, u.profile_image
+       GROUP BY 
+          p.post_id,
+          p.user_id,
+          p.board_id,
+          p.post_type,
+          p.title,
+          p.content,
+          p.image_url,
+          p.created_at,
+          u.username,
+          u.profile_image
        ORDER BY p.created_at DESC, p.post_id DESC`,
       [boardId]
     );
