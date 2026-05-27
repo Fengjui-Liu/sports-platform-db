@@ -42,21 +42,41 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 新增貼文
 router.post('/', async (req, res) => {
-  if (!ensureRequired(res, req.body, ['user_id', 'board_id', 'post_type', 'content'])) {
+  if (!ensureRequired(res, req.body, ['user_id', 'board_id', 'content'])) {
     return;
   }
 
-  const { user_id, board_id, post_type, content, image_url = null } = req.body;
+  const {
+    user_id,
+    board_id,
+    post_type = 'text',
+    content,
+    image_url = null,
+  } = req.body;
 
   try {
+    const [[board]] = await db.query(
+      'SELECT board_id FROM SPORTBOARD WHERE board_id = ?',
+      [board_id]
+    );
+
+    if (!board) {
+      return res.status(404).json({ error: '找不到指定的專欄' });
+    }
+
     const [result] = await db.query(
       `INSERT INTO POST (user_id, board_id, post_type, content, image_url, created_at)
        VALUES (?, ?, ?, ?, ?, NOW())`,
-      [user_id, board_id, post_type, content, image_url]
+      [user_id, board_id, post_type, content, image_url || null]
     );
 
-    res.status(201).json({ message: '建立貼文成功', post_id: result.insertId });
+    res.status(201).json({
+      message: '建立貼文成功',
+      post_id: result.insertId,
+      board_id,
+    });
   } catch (err) {
     sendServerError(res, err);
   }
@@ -65,9 +85,11 @@ router.post('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const postId = parseId(req.params.id);
   const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;
+
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
   }
+
   if (req.query.user_id && Number.isNaN(viewerId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
@@ -103,6 +125,7 @@ router.get('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   const postId = parseId(req.params.id);
+
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
   }
@@ -112,18 +135,28 @@ router.delete('/:id', async (req, res) => {
   }
 
   try {
-    const [[post]] = await db.query('SELECT user_id FROM POST WHERE post_id = ?', [postId]);
+    const [[post]] = await db.query(
+      'SELECT user_id FROM POST WHERE post_id = ?',
+      [postId]
+    );
+
     if (!post) {
       return res.status(404).json({ error: '找不到貼文' });
     }
+
     if (Number(post.user_id) !== Number(req.body.user_id)) {
       return res.status(403).json({ error: '只能刪除自己的貼文' });
     }
 
-    const [result] = await db.query('DELETE FROM POST WHERE post_id = ?', [postId]);
+    const [result] = await db.query(
+      'DELETE FROM POST WHERE post_id = ?',
+      [postId]
+    );
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: '找不到貼文' });
     }
+
     res.json({ message: '刪除貼文成功' });
   } catch (err) {
     sendServerError(res, err);
@@ -132,6 +165,7 @@ router.delete('/:id', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const postId = parseId(req.params.id);
+
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
   }
@@ -143,15 +177,24 @@ router.put('/:id', async (req, res) => {
   const { user_id, content, image_url = null } = req.body;
 
   try {
-    const [[post]] = await db.query('SELECT user_id FROM POST WHERE post_id = ?', [postId]);
+    const [[post]] = await db.query(
+      'SELECT user_id FROM POST WHERE post_id = ?',
+      [postId]
+    );
+
     if (!post) {
       return res.status(404).json({ error: '找不到貼文' });
     }
+
     if (Number(post.user_id) !== Number(user_id)) {
       return res.status(403).json({ error: '只能修改自己的貼文' });
     }
 
-    await db.query('UPDATE POST SET content = ?, image_url = ? WHERE post_id = ?', [content, image_url, postId]);
+    await db.query(
+      'UPDATE POST SET content = ?, image_url = ? WHERE post_id = ?',
+      [content, image_url, postId]
+    );
+
     res.json({ message: '修改貼文成功' });
   } catch (err) {
     sendServerError(res, err);
@@ -161,9 +204,11 @@ router.put('/:id', async (req, res) => {
 router.get('/:id/comments', async (req, res) => {
   const postId = parseId(req.params.id);
   const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;
+
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
   }
+
   if (req.query.user_id && Number.isNaN(viewerId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
@@ -179,6 +224,7 @@ router.get('/:id/comments', async (req, res) => {
        ORDER BY c.created_at ASC, c.comment_id ASC`,
       [viewerId, postId]
     );
+
     res.json(rows);
   } catch (err) {
     sendServerError(res, err);
@@ -187,6 +233,7 @@ router.get('/:id/comments', async (req, res) => {
 
 router.post('/:id/comments', async (req, res) => {
   const postId = parseId(req.params.id);
+
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
   }
@@ -204,7 +251,10 @@ router.post('/:id/comments', async (req, res) => {
       [user_id, postId, content]
     );
 
-    res.status(201).json({ message: '新增留言成功', comment_id: result.insertId });
+    res.status(201).json({
+      message: '新增留言成功',
+      comment_id: result.insertId,
+    });
   } catch (err) {
     sendServerError(res, err);
   }
@@ -212,6 +262,7 @@ router.post('/:id/comments', async (req, res) => {
 
 router.post('/:id/like', async (req, res) => {
   const postId = parseId(req.params.id);
+
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
   }
@@ -236,6 +287,7 @@ router.post('/:id/like', async (req, res) => {
 
 router.delete('/:id/like', async (req, res) => {
   const postId = parseId(req.params.id);
+
   if (Number.isNaN(postId)) {
     return res.status(400).json({ error: '無效的 post id' });
   }
@@ -245,7 +297,11 @@ router.delete('/:id/like', async (req, res) => {
   }
 
   try {
-    await db.query('DELETE FROM POSTLIKE WHERE post_id = ? AND user_id = ?', [postId, req.body.user_id]);
+    await db.query(
+      'DELETE FROM POSTLIKE WHERE post_id = ? AND user_id = ?',
+      [postId, req.body.user_id]
+    );
+
     res.json({ message: '取消按讚成功' });
   } catch (err) {
     sendServerError(res, err);

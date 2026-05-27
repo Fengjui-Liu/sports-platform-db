@@ -111,24 +111,34 @@ function requireCurrentUser(message = '請先登入') {
     window.location.href = '/auth.html?mode=login';
     return null;
   }
-  return user;
-}
 
-function toApiDateTime(value) {
-  if (!value) {
-    return value;
+  if (mobileBar) {
+    mobileBar.innerHTML = boards.length
+      ? `<div class="mobile-board-list">${boards
+          .map((board) => {
+            const active = String(board.board_id) === String(activeBoardId);
+            return `
+              <a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
+                <span>${getBoardEmoji(board.sport_type)}</span>
+                <span>${escapeHtml(board.sport_type)}</span>
+              </a>
+            `;
+          })
+          .join('')}</div>`
+      : '';
   }
-  return value.length === 16 ? `${value.replace('T', ' ')}:00` : value.replace('T', ' ');
 }
 
-function fillUserIdInputs(root = document) {
-  const userId = currentUserIdOrBlank();
-  root.querySelectorAll('input[name="user_id"]').forEach((input) => {
-    if (!input.value && userId) {
-      input.value = userId;
+function disableFormWithMessage(form, message, statusTarget) {
+  if (!form) {
+    return;
+  }
+
+  form.querySelectorAll('input, textarea, button, select').forEach((field) => {
+    if (field.name !== 'user_id') {
+      field.disabled = true;
     }
   });
-}
 
 function serializeForm(form) {
   const data = Object.fromEntries(new FormData(form).entries());

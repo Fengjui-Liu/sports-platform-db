@@ -1,26 +1,47 @@
 async function initBoardPage() {
   fillUserIdInputs();
   setupTabs();
+  bindBoardCreateForm();
 
   const currentUser = getCurrentUser();
   const params = getParams();
   const boardId = params.get('id') || params.get('board_id');
-  if (!boardId) {
-    el('#board-hero').innerHTML = createEmptyState('缺少 board id');
-    return;
-  }
+  const composeMode = params.get('compose');
 
   try {
-    const [boards, posts, plans, invitations] = await Promise.all([
-      API.get('/boards'),
+    const boards = await API.get('/boards');
+
+    renderBoardSelector(boards, boardId);
+    fillBoardSelects(boards, boardId);
+
+    if (!boardId) {
+      el('#board-subtitle').textContent = '選擇你今天的主題';
+      el('#board-hero').innerHTML = createEmptyState(
+        composeMode ? '請選擇要發佈的專欄後送出內容' : '請先選擇一個專欄'
+      );
+
+      clearBoardContent();
+
+      if (composeMode) {
+        document.querySelector('.tab-btn[data-tab="posts"]')?.click();
+      }
+
+      bindBoardForms(null, currentUser, boards);
+      return;
+    }
+
+    const [posts, plans, invitations] = await Promise.all([
       API.get(`/boards/${boardId}/posts`),
       API.get('/workoutplans'),
       API.get(currentUser ? `/invitations?user_id=${currentUser.user_id}` : '/invitations'),
     ]);
 
     const board = boards.find((item) => String(item.board_id) === String(boardId));
+
     if (!board) {
       el('#board-hero').innerHTML = createEmptyState('找不到專欄');
+      clearBoardContent();
+      bindBoardForms(null, currentUser, boards);
       return;
     }
 
@@ -33,9 +54,11 @@ async function initBoardPage() {
 
     if (params.get('compose')) {
       document.querySelector('.tab-btn[data-tab="posts"]')?.click();
+      el('#post-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   } catch (err) {
     el('#board-hero').innerHTML = createEmptyState(err.message);
+    clearBoardContent();
   }
 }
 
@@ -156,16 +179,16 @@ function renderBoardInvitations(items, currentUser) {
 
   document.querySelectorAll('.invitation-action-btn').forEach((button) => {
     button.addEventListener('click', async () => {
-      const user = requireCurrentUser(button.dataset.action === 'join' ? '請先登入再加入揪團' : '請先登入再退出揪團');
+      const user = requireCurrentUser('請先登入再收藏計畫');
       if (!user) {
         return;
       }
 
       try {
-        if (button.dataset.action === 'join') {
-          await API.post(`/invitations/${button.dataset.id}/join`, { user_id: user.user_id });
+        if (button.dataset.saved === 'true') {
+          await API.delete(`/workoutplans/${button.dataset.id}/save`, { user_id: user.user_id });
         } else {
-          await API.delete(`/invitations/${button.dataset.id}/join`, { user_id: user.user_id });
+          await API.post(`/workoutplans/${button.dataset.id}/save`, { user_id: user.user_id });
         }
         window.location.reload();
       } catch (err) {
@@ -175,9 +198,73 @@ function renderBoardInvitations(items, currentUser) {
   });
 }
 
-function bindBoardForms(boardId, currentUser) {
+function renderBoardInvitations(items, currentUser) {
+  el('#board-invitations').innerHTML = items.length
+    ? items
+        .map((item) => {
+          const actionLabel = Number(item.joined_by_viewer) ? '退出揪團' : '加入揪團';
+          const actionType = Number(item.joined_by_viewer) ? 'leave' : 'join';
+          const disabled = currentUser ? '' : 'disabled';
+
+          return `
+            <div class="list-card">
+              <div class="action-row">
+                <div>
+                  <h3>${escapeHtml(item.title)}</h3>
+                  <p class="page-description">${escapeHtml(item.location)}</p>
+                </div>
+                <button class="action-btn invitation-action-btn" data-action="${actionType}" data-id="${item.invitation_id}" ${disabled}>${actionLabel}</button>
+              </div>
+              <div class="chip-row">
+                <span class="chip muted-chip">${item.participant_count} / 上限${item.max_participants}人</span>
+                <span class="chip muted-chip">${formatDate(item.event_time)}</span>
+              </div>
+              <div class="meta-line">發起人 ${escapeHtml(item.username)}</div>
+            </div>
+          `;
+        })
+        .join('')
+    : createEmptyState('目前沒有揪團');
+
+  document.querySelectorAll('.invitation-action-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const user = requireCurrentUser(
+        button.dataset.action === 'join'
+          ? '請先登入再加入揪團'
+          : '請先登入再退出揪團'
+      );
+
+      if (!user) {
+        return;
+      }
+
+      try {
+        if (button.dataset.action === 'join') {
+          await API.post(`/invitations/${button.dataset.id}/join`, {
+            user_id: user.user_id,
+          });
+        } else {
+          await API.delete(`/invitations/${button.dataset.id}/join`, {
+            user_id: user.user_id,
+          });
+        }
+
+        window.location.reload();
+      } catch (err) {
+        window.alert(err.message);
+      }
+    });
+  });
+}
+
+function bindBoardForms(boardId, currentUser, boards) {
   const postForm = el('#post-form');
+  const planForm = el('#plan-form');
   const invitationForm = el('#invitation-form');
+
+  if (!postForm || !planForm || !invitationForm) {
+    return;
+  }
 
   if (!currentUser) {
     disableFormWithMessage(postForm, '請先登入後再發文');
@@ -186,18 +273,69 @@ function bindBoardForms(boardId, currentUser) {
 
   postForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+
     const user = requireCurrentUser('請先登入再發文');
+
     if (!user) {
       return;
     }
 
     const payload = serializeForm(event.currentTarget);
-    payload.board_id = Number(boardId);
+
     payload.user_id = Number(user.user_id);
+    payload.board_id = Number(payload.board_id || boardId);
+
+    if (!payload.board_id) {
+      window.alert('請選擇要發佈的專欄');
+      return;
+    }
 
     try {
-      await API.post('/posts', payload);
-      window.location.reload();
+      const result = await API.post('/posts', payload);
+      window.location.href = `/post.html?id=${result.post_id}`;
+    } catch (err) {
+      window.alert(err.message);
+    }
+  });
+
+  planForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const user = requireCurrentUser('請先登入再新增訓練計畫');
+
+    if (!user) {
+      return;
+    }
+
+    const payload = serializeForm(event.currentTarget);
+    const selectedBoard = findBoardById(boards, payload.board_id || boardId);
+
+    if (!selectedBoard) {
+      window.alert('請選擇要發佈的專欄');
+      return;
+    }
+
+    payload.user_id = Number(user.user_id);
+    payload.board_id = Number(payload.board_id || boardId);
+    payload.sport_type = selectedBoard.sport_type;
+
+    if (payload.reps !== undefined) {
+      payload.reps = Number(payload.reps);
+    }
+
+    if (payload.sets !== undefined) {
+      payload.sets = Number(payload.sets);
+    }
+
+    try {
+      const result = await API.post('/workoutplans', payload);
+      window.alert('訓練計畫建立成功');
+
+      if (result.plan_id) {
+        window.location.href = `/workoutplan.html?id=${result.plan_id}`;
+      } else {
+        window.location.href = `/board.html?id=${payload.board_id}`;
+      }
     } catch (err) {
       window.alert(err.message);
     }
@@ -205,19 +343,28 @@ function bindBoardForms(boardId, currentUser) {
 
   invitationForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+
     const user = requireCurrentUser('請先登入再建立揪團');
+
     if (!user) {
       return;
     }
 
     const payload = serializeForm(event.currentTarget);
-    payload.board_id = Number(boardId);
+
+    payload.board_id = Number(payload.board_id || boardId);
+
+    if (!payload.board_id) {
+      window.alert('請選擇要發佈的專欄');
+      return;
+    }
+
     payload.user_id = Number(user.user_id);
     payload.event_time = toApiDateTime(payload.event_time);
 
     try {
       await API.post('/invitations', payload);
-      window.location.reload();
+      window.location.href = `/board.html?id=${payload.board_id}`;
     } catch (err) {
       window.alert(err.message);
     }
@@ -232,3 +379,13 @@ function renderPostTypeChip(postType) {
 }
 
 initBoardPage();
+=======
+function renderPostTypeChip(postType) {
+  if (!postType || String(postType).toLowerCase() === 'text') {
+    return '';
+  }
+  return `<span class="chip muted-chip">${escapeHtml(postType)}</span>`;
+}
+
+initBoardPage();
+>>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783

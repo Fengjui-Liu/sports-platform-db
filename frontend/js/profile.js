@@ -11,12 +11,26 @@ async function initProfilePage() {
   fillUserIdInputs();
 
   try {
-    const [user, bodyRecords, posts, sessions, savedPlans] = await Promise.all([
+    const viewerId = currentUser?.user_id || userId;
+
+    const [
+      user,
+      bodyRecords,
+      posts,
+      sessions,
+      savedPlans,
+      createdPlans,
+      createdInvitations,
+      joinedInvitations,
+    ] = await Promise.all([
       API.get(`/users/${userId}`),
       API.get(`/users/${userId}/bodyrecord`),
       API.get(`/users/${userId}/posts`),
       API.get(`/users/${userId}/sessions`),
       API.get(`/users/${userId}/saved-plans`),
+      API.get(`/workoutplans?user_id=${userId}`),
+      API.get(`/invitations?owner_id=${userId}&user_id=${viewerId}`),
+      API.get(`/invitations?participant_user_id=${userId}&user_id=${viewerId}`),
     ]);
 
     renderProfile(user);
@@ -75,6 +89,9 @@ async function initProfilePage() {
   }
 }
 
+<<<<<<< HEAD
+function renderProfile(user, stats = {}) {
+=======
 function renderProfile(user) {
   const avatar = user.profile_image
     ? `<img class="avatar" src="${escapeHtml(user.profile_image)}" alt="avatar">`
@@ -99,8 +116,28 @@ function renderProfile(user) {
   `;
 
   const profileForm = el('#profile-form');
-  profileForm.bio.value = user.bio || '';
-  profileForm.profile_image.value = user.profile_image || '';
+
+  if (profileForm) {
+    profileForm.bio.value = user.bio || '';
+    profileForm.profile_image.value = user.profile_image || '';
+  }
+}
+
+function renderStats(user) {
+  el('#profile-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="meta-line">貼文數</div>
+      <div class="stat-value">${user.post_count}</div>
+    </div>
+    <div class="stat-card">
+      <div class="meta-line">訓練次數</div>
+      <div class="stat-value">${user.session_count}</div>
+    </div>
+    <div class="stat-card">
+      <div class="meta-line">收藏數</div>
+      <div class="stat-value">${user.saved_plan_count}</div>
+    </div>
+  `;
 }
 
 function renderStats(user) {
@@ -122,6 +159,7 @@ function renderStats(user) {
 
 function renderBodyRecords(records) {
   const chartShell = el('#bodyrecord-chart');
+
   if (!records.length) {
     chartShell.innerHTML = createEmptyState('尚未建立身體數據');
     return;
@@ -141,7 +179,9 @@ function renderBodyRecords(records) {
           (record) => `
             <div class="mini-card">
               <strong>${formatDate(record.recorded_at)}</strong>
-              <div class="meta-line">體重 ${record.weight} kg · 身高 ${record.height} cm · 體脂 ${record.body_fat} %</div>
+              <div class="meta-line">
+                體重 ${record.weight} kg · 身高 ${record.height} cm · 體脂 ${record.body_fat} %
+              </div>
             </div>
           `
         )
@@ -217,7 +257,15 @@ function drawBodyChart(records) {
 }
 
 function renderSimpleList(selector, items, renderer, emptyText) {
-  el(selector).innerHTML = items.length ? items.map(renderer).join('') : createEmptyState(emptyText);
+  const target = el(selector);
+
+  if (!target) {
+    return;
+  }
+
+  target.innerHTML = items.length
+    ? items.map(renderer).join('')
+    : createEmptyState(emptyText);
 }
 
 function bindProfileForms(userId, currentUser) {
@@ -250,6 +298,7 @@ function bindProfileForms(userId, currentUser) {
     }
 
     const payload = serializeForm(event.currentTarget);
+
     if (payload.recorded_at) {
       payload.recorded_at = toApiDateTime(payload.recorded_at);
     }
