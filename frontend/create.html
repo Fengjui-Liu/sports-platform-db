@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新增內容 | SportBoard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="compose">
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+
+    <main class="main-content">
+      <div class="page-stack">
+        <div>
+          <a
+            class="ghost-btn"
+            href="/"
+            style="
+              display:inline-flex;
+              align-items:center;
+              justify-content:center;
+              padding:12px 18px;
+              border-radius:16px;
+              font-weight:800;
+              text-decoration:none;
+            "
+          >
+            ← 返回首頁
+          </a>
+        </div>
+
+        <section class="page-hero">
+          <div>
+            <p class="eyebrow">Create</p>
+            <h1>新增內容</h1>
+            <p class="page-description">
+              在這裡新增貼文、訓練計畫或揪團活動，送出後會回到你選擇的專欄。
+            </p>
+          </div>
+        </section>
+
+        <section class="panel-card">
+          <div class="tab-row">
+            <button class="tab-btn active" data-tab="posts" type="button">新增貼文</button>
+            <button class="tab-btn" data-tab="plans" type="button">新增訓練計畫</button>
+            <button class="tab-btn" data-tab="invitations" type="button">建立揪團</button>
+          </div>
+        </section>
+
+        <section id="tab-posts" class="tab-panel active">
+          <article class="panel-card">
+            <div class="section-head">
+              <div>
+                <h2>新增貼文</h2>
+                <p class="section-copy">選擇專欄後分享近況、心得或圖片連結</p>
+              </div>
+              <span class="helper-text">Post</span>
+            </div>
+
+            <form id="post-form" class="inline-form">
+              <input type="hidden" name="user_id">
+              <input type="hidden" name="post_type" value="text">
+
+              <select id="post-board-select" name="board_id" required>
+                <option value="" disabled selected hidden>請選擇要發佈的專欄</option>
+              </select>
+
+              <input type="text" name="title" placeholder="貼文標題" required>
+              <textarea name="content" placeholder="分享你的訓練內容" required></textarea>
+              <input type="url" name="image_url" placeholder="圖片網址（選填）">
+
+              <button type="submit" class="primary-btn">送出貼文</button>
+            </form>
+          </article>
+        </section>
+
+        <section id="tab-plans" class="tab-panel">
+          <article class="panel-card">
+            <div class="section-head">
+              <div>
+                <h2>新增訓練計畫</h2>
+                <p class="section-copy">選擇專欄後建立訓練菜單</p>
+              </div>
+              <span class="helper-text">Plan</span>
+            </div>
+
+            <form id="plan-form" class="inline-form">
+              <input type="hidden" name="user_id">
+              <input type="hidden" id="plan-sport-type" name="sport_type">
+
+              <select id="plan-board-select" name="board_id" required>
+                <option value="" disabled selected hidden>請選擇要發佈的專欄</option>
+              </select>
+
+              <input type="text" name="title" placeholder="計畫標題，例如：新手籃球體能訓練" required>
+              <input type="text" name="difficulty_level" placeholder="難度，例如：初級 / 中級 / 高級" required>
+              <input type="text" name="exercise_name" placeholder="訓練項目，例如：深蹲、折返跑、投籃" required>
+              <input type="text" name="muscle_group" placeholder="訓練部位，例如：腿部、核心、全身">
+              <input type="number" name="reps" placeholder="次數 reps" min="0">
+              <input type="number" name="sets" placeholder="組數 sets" min="0">
+
+              <button type="submit" class="primary-btn">送出計畫</button>
+            </form>
+          </article>
+        </section>
+
+        <section id="tab-invitations" class="tab-panel">
+          <article class="panel-card">
+            <div class="section-head">
+              <div>
+                <h2>建立揪團</h2>
+                <p class="section-copy">選擇專欄後快速發起活動</p>
+              </div>
+              <span class="helper-text">Group</span>
+            </div>
+
+            <form id="invitation-form" class="inline-form">
+              <input type="hidden" name="user_id">
+
+              <select id="invitation-board-select" name="board_id" required>
+                <option value="" disabled selected hidden>請選擇要發佈的專欄</option>
+              </select>
+
+              <input type="text" name="title" placeholder="活動標題" required>
+              <input type="text" name="location" placeholder="地點" required>
+              <input type="datetime-local" name="event_time" required>
+              <input type="number" name="max_participants" placeholder="人數上限" min="1" required>
+
+              <button type="submit" class="secondary-btn">建立揪團</button>
+            </form>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <nav id="bottom-nav" class="bottom-nav"></nav>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/create.js"></script>
+</body>
+</html>

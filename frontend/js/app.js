@@ -8,18 +8,37 @@ const API = {
 };
 
 const BOARD_EMOJI_MAP = {
-  basketball: '🏀',
-  soccer: '⚽',
-  football: '🏈',
-  baseball: '⚾',
-  tennis: '🎾',
-  badminton: '🏸',
-  running: '🏃',
-  cycling: '🚴',
-  swimming: '🏊',
-  yoga: '🧘',
-  fitness: '💪',
-  gym: '🏋️',
+  籃球: '🏀',
+  羽球: '🏸',
+  足球: '⚽',
+  棒球: '⚾',
+  網球: '🎾',
+  排球: '🏐',
+  桌球: '🏓',
+  跑步: '🏃',
+  慢跑: '🏃',
+  單車: '🚴',
+  自行車: '🚴',
+  游泳: '🏊',
+  健身: '💪',
+  重訓: '🏋️',
+  瑜珈: '🧘',
+  瑜伽: '🧘',
+  拳擊: '🥊',
+  登山: '⛰️',
+  攀岩: '🧗',
+  滑板: '🛹',
+  高爾夫: '⛳',
+  橄欖球: '🏈',
+  撞球: '🎱',
+  射箭: '🏹',
+  滑雪: '⛷️',
+  溜冰: '⛸️',
+  田徑: '🏃',
+  舞蹈: '💃',
+  飛盤: '🥏',
+  綜合: '🏅',
+  其他: '🏅',
   default: '🏅',
 };
 
@@ -35,9 +54,11 @@ async function request(path, options = {}) {
 
   const response = await fetch(`${API_BASE_URL}${path}`, config);
   const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
     throw new Error(data.error || 'API request failed');
   }
+
   return data;
 }
 
@@ -83,79 +104,6 @@ function clearCurrentUser() {
   localStorage.removeItem('username');
 }
 
-<<<<<<< HEAD
-async function getDefaultBoardUrl(options = {}) {
-  const boards = await API.get('/boards');
-
-  if (!Array.isArray(boards) || boards.length === 0) {
-    throw new Error('目前沒有任何專欄');
-  }
-
-  const params = new URLSearchParams({ id: String(boards[0].board_id) });
-
-  if (options.compose) {
-    params.set('compose', '1');
-  }
-
-  return `/board.html?${params.toString()}`;
-}
-
-function renderBottomNav() {
-  const nav = el('#bottom-nav');
-
-  if (!nav) {
-    return;
-  }
-
-  const user = getCurrentUser();
-  const page = document.body.dataset.page;
-
-  const links = [
-    {
-      href: '/',
-      label: '首頁',
-      icon: '🏠',
-      key: 'home',
-    },
-    {
-      href: '/board.html',
-      label: '專欄',
-      icon: '📋',
-      key: 'boards',
-    },
-    {
-      href: '/board.html?compose=1',
-      label: '發文',
-      icon: '➕',
-      key: 'compose',
-    },
-    {
-      href: user ? `/profile.html?id=${user.user_id}` : '/profile.html',
-      label: '我的',
-      icon: '👤',
-      key: 'profile',
-    },
-  ];
-
-  nav.innerHTML = links
-    .map((link) => {
-      const active =
-        page === link.key ||
-        (page === 'post' && link.key === 'boards') ||
-        (page === 'plans' && link.key === 'boards');
-
-      return `
-        <a class="bottom-link ${active ? 'active' : ''}" href="${link.href}">
-          <span class="icon">${link.icon}</span>
-          <span>${link.label}</span>
-        </a>
-      `;
-    })
-    .join('');
-}
-
-=======
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
 function showMessage(target, text, isError = false) {
   if (!target) {
     if (text) {
@@ -227,9 +175,8 @@ function setupTabs(container = document) {
   buttons.forEach((button) => {
     button.addEventListener('click', () => {
       const tab = button.dataset.tab;
-<<<<<<< HEAD
 
-      container.querySelectorAll('.tab-btn').forEach((btn) => {
+      container.querySelectorAll('.tab-btn[data-tab]').forEach((btn) => {
         btn.classList.remove('active');
         btn.classList.add('muted');
       });
@@ -246,12 +193,6 @@ function setupTabs(container = document) {
         container.querySelector(`#${tab}-form`) ||
         container.querySelector(`#${tab}`);
 
-=======
-      container.querySelectorAll('.tab-btn[data-tab]').forEach((btn) => btn.classList.remove('active'));
-      container.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.remove('active'));
-      button.classList.add('active');
-      const target = container.querySelector(`#tab-${tab}`);
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
       if (target) {
         target.classList.add('active');
       }
@@ -259,28 +200,6 @@ function setupTabs(container = document) {
   });
 }
 
-<<<<<<< HEAD
-function bindGlobalActions() {
-  const headerAuthBtn = el('#header-auth-btn');
-
-  if (headerAuthBtn) {
-    const user = getCurrentUser();
-    headerAuthBtn.textContent = user ? user.username : '登入';
-
-    headerAuthBtn.addEventListener('click', () => {
-      window.location.href = user
-        ? `/profile.html?id=${user.user_id}`
-        : '/auth.html';
-    });
-  }
-
-  const logoutBtn = el('#logout-btn-top');
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      clearCurrentUser();
-      window.location.href = '/auth.html';
-=======
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -295,9 +214,28 @@ function getUserInitials(name) {
   return text.slice(0, 2).toUpperCase();
 }
 
+function normalizeBoardName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, '');
+}
+
 function getBoardEmoji(name) {
-  const key = String(name || '').toLowerCase();
-  return BOARD_EMOJI_MAP[key] || BOARD_EMOJI_MAP.default;
+  const boardName = normalizeBoardName(name);
+
+  if (BOARD_EMOJI_MAP[boardName]) {
+    return BOARD_EMOJI_MAP[boardName];
+  }
+
+  const matchedKey = Object.keys(BOARD_EMOJI_MAP).find((key) => {
+    if (key === 'default') {
+      return false;
+    }
+
+    return boardName.includes(key);
+  });
+
+  return matchedKey ? BOARD_EMOJI_MAP[matchedKey] : BOARD_EMOJI_MAP.default;
 }
 
 function truncateText(value, limit = 120) {
@@ -305,21 +243,17 @@ function truncateText(value, limit = 120) {
   return text.length > limit ? `${text.slice(0, limit)}...` : text;
 }
 
-async function getDefaultBoardUrl(options = {}) {
-  const boards = await API.get('/boards');
-  if (!Array.isArray(boards) || boards.length === 0) {
-    throw new Error('目前沒有任何專欄');
-  }
+function goHome() {
+  window.location.href = '/';
+}
 
-  const params = new URLSearchParams({ id: String(boards[0].board_id) });
-  if (options.compose) {
-    params.set('compose', '1');
-  }
-  return `/board.html?${params.toString()}`;
+function isIndividualBoardPage(activeBoardId) {
+  return Boolean(activeBoardId);
 }
 
 function renderTopNav() {
   const container = el('#site-header');
+
   if (!container) {
     return;
   }
@@ -335,10 +269,63 @@ function renderTopNav() {
         <span class="brand-subtitle">運動社群平台</span>
       </span>
     </a>
-    <div class="header-actions">
-      <span class="header-user">${user ? escapeHtml(user.username) : '尚未登入'}</span>
-      <a id="header-auth-btn" class="ghost-btn" href="${profileUrl}">${user ? '個人頁面' : '登入 / 註冊'}</a>
-      <button id="logout-btn-top" class="primary-btn" type="button" ${user ? '' : 'hidden'}>登出</button>
+
+    <div 
+      class="header-actions"
+      style="
+        display:flex;
+        align-items:center;
+        justify-content:flex-end;
+        gap:18px;
+        margin-left:auto;
+      "
+    >
+      <span 
+        class="header-user"
+        style="
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          min-height:48px;
+          line-height:1;
+        "
+      >
+        ${user ? escapeHtml(user.username) : '尚未登入'}
+      </span>
+
+      <a 
+        id="header-auth-btn" 
+        class="ghost-btn" 
+        href="${profileUrl}"
+        style="
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          min-height:48px;
+          line-height:1;
+          text-decoration:none;
+          white-space:nowrap;
+        "
+      >
+        ${user ? '個人頁面' : '登入 / 註冊'}
+      </a>
+
+      <button 
+        id="logout-btn-top" 
+        class="primary-btn" 
+        type="button" 
+        ${user ? '' : 'hidden'}
+        style="
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          min-height:48px;
+          line-height:1;
+          white-space:nowrap;
+        "
+      >
+        登出
+      </button>
     </div>
   `;
 
@@ -350,51 +337,63 @@ function renderTopNav() {
 
 function renderBottomNav() {
   const nav = el('#bottom-nav');
+
   if (!nav) {
     return;
   }
 
   const user = getCurrentUser();
   const page = document.body.dataset.page;
+
   const links = [
-    { href: '/', label: '首頁', icon: '🏠', key: 'home' },
-    { href: '/board.html', label: '專欄', icon: '🏅', key: 'boards', useDefaultBoard: true },
-    { href: '/board.html?compose=1', label: '發文', icon: '✍️', key: 'compose', useDefaultBoard: true, compose: true },
-    { href: user ? `/profile.html?id=${user.user_id}` : '/auth.html', label: '我的', icon: '👤', key: 'profile' },
+    {
+      href: '/',
+      label: '首頁',
+      icon: '🏠',
+      key: 'home',
+    },
+    {
+      href: '/board.html',
+      label: '專欄',
+      icon: '🏅',
+      key: 'boards',
+    },
+    {
+      href: '/create.html',
+      label: '發文',
+      icon: '✍️',
+      key: 'compose',
+    },
+    {
+      href: user ? `/profile.html?id=${user.user_id}` : '/auth.html?mode=login',
+      label: '我的',
+      icon: '👤',
+      key: 'profile',
+    },
   ];
 
   nav.innerHTML = links
     .map((link) => {
-      const active = page === link.key || (page === 'post' && link.key === 'boards') || (page === 'plans' && link.key === 'boards');
-      const attrs = link.useDefaultBoard
-        ? `data-use-default-board="true"${link.compose ? ' data-compose="true"' : ''}`
-        : '';
+      const active =
+        page === link.key ||
+        (page === 'post' && link.key === 'boards') ||
+        (page === 'plans' && link.key === 'boards');
+
       return `
-        <a class="bottom-link ${active ? 'active' : ''}" href="${link.href}" ${attrs}>
+        <a class="bottom-link ${active ? 'active' : ''}" href="${link.href}">
           <span>${link.icon}</span>
           <span>${link.label}</span>
         </a>
       `;
     })
     .join('');
-
-  nav.querySelectorAll('[data-use-default-board="true"]').forEach((link) => {
-    link.addEventListener('click', async (event) => {
-      event.preventDefault();
-      try {
-        const url = await getDefaultBoardUrl({ compose: link.dataset.compose === 'true' });
-        window.location.href = url;
-      } catch (err) {
-        window.alert(err.message);
-      }
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
-    });
-  });
 }
 
 function renderBoardSidebar(boards, activeBoardId) {
   const sidebar = el('#board-sidebar');
   const mobileBar = el('#mobile-board-bar');
+  const shouldShowHomeButton = isIndividualBoardPage(activeBoardId);
+
   if (!sidebar && !mobileBar) {
     return;
   }
@@ -404,6 +403,7 @@ function renderBoardSidebar(boards, activeBoardId) {
         .map((board) => {
           const active = String(board.board_id) === String(activeBoardId);
           const emoji = getBoardEmoji(board.sport_type);
+
           return `
             <a class="board-nav-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
               <span class="board-nav-emoji">${emoji}</span>
@@ -417,26 +417,74 @@ function renderBoardSidebar(boards, activeBoardId) {
   if (sidebar) {
     sidebar.innerHTML = `
       <div class="sidebar-card">
+        ${
+          shouldShowHomeButton
+            ? `
+              <button 
+                id="sidebar-home-btn" 
+                class="ghost-btn" 
+                type="button" 
+                style="
+                  width:100%;
+                  justify-content:center;
+                  margin-bottom:18px;
+                  padding:12px 16px;
+                  border-radius:16px;
+                  font-weight:800;
+                "
+              >
+                ← 返回首頁
+              </button>
+            `
+            : ''
+        }
+
         <div class="sidebar-title">運動專欄</div>
         <div class="board-nav">${links}</div>
       </div>
     `;
+
+    el('#sidebar-home-btn')?.addEventListener('click', goHome);
   }
 
   if (mobileBar) {
     mobileBar.innerHTML = boards.length
-      ? `<div class="mobile-board-list">${boards
-          .map((board) => {
-            const active = String(board.board_id) === String(activeBoardId);
-            return `
-              <a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
-                <span>${getBoardEmoji(board.sport_type)}</span>
-                <span>${escapeHtml(board.sport_type)}</span>
-              </a>
-            `;
-          })
-          .join('')}</div>`
+      ? `
+        ${
+          shouldShowHomeButton
+            ? `
+              <div style="margin-bottom:12px;">
+                <button 
+                  id="mobile-board-home-btn" 
+                  class="ghost-btn" 
+                  type="button"
+                  style="padding:10px 14px; border-radius:14px; font-weight:800;"
+                >
+                  ← 返回首頁
+                </button>
+              </div>
+            `
+            : ''
+        }
+
+        <div class="mobile-board-list">
+          ${boards
+            .map((board) => {
+              const active = String(board.board_id) === String(activeBoardId);
+
+              return `
+                <a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
+                  <span>${getBoardEmoji(board.sport_type)}</span>
+                  <span>${escapeHtml(board.sport_type)}</span>
+                </a>
+              `;
+            })
+            .join('')}
+        </div>
+      `
       : '';
+
+    el('#mobile-board-home-btn')?.addEventListener('click', goHome);
   }
 }
 
@@ -453,14 +501,10 @@ function disableFormWithMessage(form, message, statusTarget) {
 
   if (statusTarget) {
     showMessage(statusTarget, message, true);
-  } else {
+  } else if (!form.previousElementSibling?.classList?.contains('empty-state')) {
     form.insertAdjacentHTML('beforebegin', createEmptyState(message));
   }
 }
 
 renderTopNav();
 renderBottomNav();
-<<<<<<< HEAD
-bindGlobalActions();
-=======
->>>>>>> 42d7143cb7a324ece4d90351658567be95a3b783
