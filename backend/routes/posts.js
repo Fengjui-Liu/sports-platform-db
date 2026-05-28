@@ -6,13 +6,18 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   const userId = req.query.user_id ? parseId(req.query.user_id) : null;
+  const viewerId = req.query.viewer_id ? parseId(req.query.viewer_id) : null;
 
   if (req.query.user_id && Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
 
+  if (req.query.viewer_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 viewer id' });
+  }
+
   try {
-    const params = [];
+    const params = [viewerId];
     let whereClause = '';
 
     if (userId) {
@@ -24,12 +29,14 @@ router.get('/', async (req, res) => {
       `SELECT p.post_id, p.user_id, p.board_id, p.post_type, p.content, p.image_url, p.created_at,
               u.username, u.profile_image, b.sport_type AS board_name,
               COUNT(DISTINCT l.user_id) AS like_count,
-              COUNT(DISTINCT c.comment_id) AS comment_count
+              COUNT(DISTINCT c.comment_id) AS comment_count,
+              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer
        FROM POST p
        JOIN USER u ON u.user_id = p.user_id
        JOIN SPORTBOARD b ON b.board_id = p.board_id
        LEFT JOIN POSTLIKE l ON l.post_id = p.post_id
        LEFT JOIN COMMENT c ON c.post_id = p.post_id
+       LEFT JOIN POSTLIKE pl ON pl.post_id = p.post_id AND pl.user_id = ?
        ${whereClause}
        GROUP BY p.post_id
        ORDER BY p.created_at DESC, p.post_id DESC`,

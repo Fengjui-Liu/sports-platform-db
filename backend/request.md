@@ -16,11 +16,11 @@ sports-platform-db/
 - Database: MySQL
 
 ## 已完成 API
-- POST /api/users/register ✅
-- POST /api/users/login ✅
-- PUT /api/users/:id ✅
-- POST /api/users/:id/bodyrecord ✅
-- GET /api/users/:id/bodyrecord ✅
+- POST /api/users/register (done)
+- POST /api/users/login (done)
+- PUT /api/users/:id (done)
+- POST /api/users/:id/bodyrecord (done)
+- GET /api/users/:id/bodyrecord (done)
 
 ## 需要完成的後端 API
 

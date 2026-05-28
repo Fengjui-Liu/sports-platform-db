@@ -1,4 +1,4 @@
-# 🏃 Sports Platform DB
+# Sports Platform DB
 
 政治大學 DBMS 課程期末專案 — 運動社群平台資料庫系統
 
@@ -11,7 +11,7 @@
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | 層級 | 技術 |
 |------|------|
@@ -22,7 +22,7 @@
 
 ---
 
-## 🚀 快速開始
+## 快速開始
 
 ### 1. Clone 專案
 
@@ -46,7 +46,7 @@ DB_USER=你的資料庫帳號
 DB_PASSWORD=你的資料庫密碼
 DB_NAME=sports_platform
 PORT=3000
-> ⚠️ 每個人的 DB_USER、DB_PASSWORD 可以不同，.env 不要推上 GitHub
+> 每個人的 DB_USER、DB_PASSWORD 可以不同，.env 不要推上 GitHub
 
 ### 4. 建立資料庫與資料表
 
@@ -75,7 +75,7 @@ node server.js
 
 ---
 
-## 👥 協作流程
+## 協作流程
 
 ### 第一次加入專案
 1. 確認已收到 GitHub Collaborator 邀請並接受
@@ -109,7 +109,7 @@ git pull origin main
 
 ---
 
-## 📁 專案結構
+## 專案結構
 
 ```text
 sports-platform-db/
@@ -134,7 +134,7 @@ sports-platform-db/
 
 ---
 
-## 🔐 資安設計
+## 資安設計
 
 本專案在後端 API 與資料庫互動時，使用 `?` placeholder 搭配參數化查詢，避免將使用者輸入直接拼接進 SQL 字串中，以降低 SQL Injection 風險。
 
@@ -142,7 +142,7 @@ sports-platform-db/
 
 此外，系統避免將後端詳細錯誤訊息直接回傳給前端，降低資料庫結構或伺服器內部資訊外洩的風險。
 
-## 📡 API 列表
+## API 列表
 
 ### 用戶管理
 | Method | Path | 說明 |
@@ -209,4 +209,4 @@ sports-platform-db/
 
 ---
 
-## 👨‍💻 開發團隊
+## 開發團隊

@@ -483,6 +483,50 @@ strong {
   color: #667085;
   font-size: 13px;
   font-weight: 700;
+  margin-top: 4px;
+}
+
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #667085;
+  font-weight: 700;
+  padding: 6px 10px;
+  margin: -6px -10px;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.like-btn:hover {
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+}
+
+.like-btn.is-liked {
+  color: #dc2626;
+}
+
+.like-icon {
+  font-size: 16px;
+  transition: transform 0.2s;
+}
+
+.like-btn:active .like-icon {
+  transform: scale(1.3);
+}
+
+.post-card-link-overlay {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.post-card-link-overlay:hover .post-card-content {
+  color: var(--primary);
 }
 
 #profile-posts .list-card h3 {

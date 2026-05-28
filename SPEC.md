@@ -77,9 +77,9 @@
 - created_at (TIMESTAMP)
 
 ## API Routes已完成
-- POST /api/users/register ✅
-- POST /api/users/login ✅
-- PUT /api/users/:id ✅
+- POST /api/users/register (done)
+- POST /api/users/login (done)
+- PUT /api/users/:id (done)
 
 ## API Routes待完成
 - POST /api/users/:id/bodyrecord

@@ -1,16 +1,18 @@
 async function initHome() {
   try {
+    const currentUser = getCurrentUser();
+    const viewerId = currentUser?.user_id || '';
+
     const [boards, posts] = await Promise.all([
       API.get('/boards'),
-      API.get('/posts'),
+      API.get(`/posts?viewer_id=${viewerId}`),
     ]);
-
-    const currentUser = getCurrentUser();
 
     renderBoardSidebar(boards, null);
     renderWelcomeBanner(currentUser);
     renderHeroLinks(currentUser, boards);
     renderLatestPosts(posts);
+    setupFeedInteractions();
   } catch (err) {
     showMessage(el('#latest-posts'), err.message, true);
   }
@@ -125,30 +127,94 @@ function renderLatestPosts(posts) {
 
 function renderPostCard(post, boardName) {
   const username = post.username || '未知使用者';
+  const isLiked = post.liked_by_viewer === 1;
 
   return `
-    <a class="list-card post-feed-card" href="/post.html?id=${post.post_id}">
+    <div class="list-card post-feed-card" data-post-id="${post.post_id}">
       ${renderAuthorAvatar(username, post.profile_image)}
 
       <div class="post-card-body">
-        <div class="post-card-meta">
-          <strong class="post-author">${escapeHtml(username)}</strong>
-          <span class="meta-dot">•</span>
-          <span class="post-board-tag">${renderBoardTagText(boardName)}</span>
-          <span class="meta-dot">•</span>
-          <span class="post-time">${formatPostTime(post.created_at)}</span>
-        </div>
+        <a class="post-card-link-overlay" href="/post.html?id=${post.post_id}">
+          <div class="post-card-meta">
+            <strong class="post-author">${escapeHtml(username)}</strong>
+            <span class="meta-dot">•</span>
+            <span class="post-board-tag">${renderBoardTagText(boardName)}</span>
+            <span class="meta-dot">•</span>
+            <span class="post-time">${formatPostTime(post.created_at)}</span>
+          </div>
 
-        <p class="post-card-content">${escapeHtml(post.content || '')}</p>
+          <p class="post-card-content">${escapeHtml(post.content || '')}</p>
+        </a>
 
         <div class="post-card-actions" aria-label="貼文互動資訊">
-          <span>按讚 ${post.like_count || 0}</span>
-          <span>留言 ${post.comment_count || 0}</span>
-          <span>收藏</span>
+          <button 
+            class="like-btn ${isLiked ? 'is-liked' : ''}" 
+            data-action="like" 
+            data-post-id="${post.post_id}"
+            data-liked="${isLiked}"
+          >
+            <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+            <span class="like-count">${post.like_count || 0}</span>
+          </button>
+          
+          <a class="meta-line" href="/post.html?id=${post.post_id}#comments" style="text-decoration:none; font-weight:700;">
+            留言 ${post.comment_count || 0}
+          </a>
+          
+          <span class="meta-line" style="font-weight:700;">收藏</span>
         </div>
       </div>
-    </a>
+    </div>
   `;
+}
+
+function setupFeedInteractions() {
+  const feed = el('#latest-posts');
+  if (!feed) return;
+
+  feed.addEventListener('click', async (event) => {
+    const likeBtn = event.target.closest('[data-action="like"]');
+    if (!likeBtn) return;
+
+    event.preventDefault();
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      window.alert('請先登入才能按讚');
+      window.location.href = '/auth.html?mode=login';
+      return;
+    }
+
+    const postId = likeBtn.dataset.postId;
+    const isLiked = likeBtn.dataset.liked === 'true';
+    const countEl = likeBtn.querySelector('.like-count');
+    const iconEl = likeBtn.querySelector('.like-icon');
+    let currentCount = parseInt(countEl.textContent);
+
+    // Optimistic UI Update
+    const newLiked = !isLiked;
+    const newCount = newLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
+
+    likeBtn.dataset.liked = String(newLiked);
+    likeBtn.classList.toggle('is-liked', newLiked);
+    countEl.textContent = newCount;
+    iconEl.textContent = newLiked ? '❤️' : '🤍';
+
+    try {
+      if (newLiked) {
+        await API.post(`/posts/${postId}/like`, { user_id: currentUser.user_id });
+      } else {
+        await API.delete(`/posts/${postId}/like`, { user_id: currentUser.user_id });
+      }
+    } catch (err) {
+      // Revert on failure
+      window.alert('操作失敗: ' + err.message);
+      likeBtn.dataset.liked = String(isLiked);
+      likeBtn.classList.toggle('is-liked', isLiked);
+      countEl.textContent = currentCount;
+      iconEl.textContent = isLiked ? '❤️' : '🤍';
+    }
+  });
 }
 
 function renderAuthorAvatar(username, profileImage) {
