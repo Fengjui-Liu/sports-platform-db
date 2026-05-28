@@ -13,8 +13,27 @@ async function initHome() {
     renderHeroLinks(currentUser, boards);
     renderLatestPosts(posts);
     setupFeedInteractions();
+    setupCreateDropdown();
   } catch (err) {
     showMessage(el('#latest-posts'), err.message, true);
+  }
+}
+
+function setupCreateDropdown() {
+  const createMenuBtn = el('#btn-create-menu');
+  const createMenuContainer = document.querySelector('.create-dropdown-container');
+
+  if (createMenuBtn && createMenuContainer) {
+    createMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      createMenuContainer.classList.toggle('is-active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!createMenuContainer.contains(e.target)) {
+        createMenuContainer.classList.remove('is-active');
+      }
+    });
   }
 }
 
@@ -36,26 +55,26 @@ function renderWelcomeBanner(currentUser) {
     ? `
       <div>
         <p 
-          class="eyebrow" 
-          style="
+          class='eyebrow' 
+          style='
             color:#dbeafe;
             letter-spacing:0.14em;
             font-weight:900;
-          "
+          '
         >
           WELCOME BACK
         </p>
 
-        <h1 style="color:#ffffff;">
+        <h1 style='color:#ffffff;'>
           歡迎回來，${escapeHtml(currentUser.username)}
         </h1>
 
         <p 
-          class="page-description"
-          style="
+          class='page-description'
+          style='
             color:#eaf2ff;
             max-width:760px;
-          "
+          '
         >
           繼續查看運動專欄、參與討論，或管理你的訓練紀錄。
         </p>
@@ -64,26 +83,26 @@ function renderWelcomeBanner(currentUser) {
     : `
       <div>
         <p 
-          class="eyebrow" 
-          style="
+          class='eyebrow' 
+          style='
             color:#dbeafe;
             letter-spacing:0.14em;
             font-weight:900;
-          "
+          '
         >
           WELCOME
         </p>
 
-        <h1 style="color:#ffffff;">
+        <h1 style='color:#ffffff;'>
           歡迎來到 SportBoard
         </h1>
 
         <p 
-          class="page-description"
-          style="
+          class='page-description'
+          style='
             color:#eaf2ff;
             max-width:760px;
-          "
+          '
         >
           加入討論、分享訓練、找到你的運動社群。
         </p>
@@ -130,38 +149,38 @@ function renderPostCard(post, boardName) {
   const isLiked = post.liked_by_viewer === 1;
 
   return `
-    <div class="list-card post-feed-card" data-post-id="${post.post_id}">
+    <div class='list-card post-feed-card' data-post-id='${post.post_id}'>
       ${renderAuthorAvatar(username, post.profile_image)}
 
-      <div class="post-card-body">
-        <a class="post-card-link-overlay" href="/post.html?id=${post.post_id}">
-          <div class="post-card-meta">
-            <strong class="post-author">${escapeHtml(username)}</strong>
-            <span class="meta-dot">•</span>
-            <span class="post-board-tag">${renderBoardTagText(boardName)}</span>
-            <span class="meta-dot">•</span>
-            <span class="post-time">${formatPostTime(post.created_at)}</span>
+      <div class='post-card-body'>
+        <a class='post-card-link-overlay' href='/post.html?id=${post.post_id}'>
+          <div class='post-card-meta'>
+            <strong class='post-author'>${escapeHtml(username)}</strong>
+            <span class='meta-dot'>•</span>
+            <span class='post-board-tag'>${renderBoardTagText(boardName)}</span>
+            <span class='meta-dot'>•</span>
+            <span class='post-time'>${formatPostTime(post.created_at)}</span>
           </div>
 
-          <p class="post-card-content">${escapeHtml(post.content || '')}</p>
+          <p class='post-card-content'>${escapeHtml(post.content || '')}</p>
         </a>
 
-        <div class="post-card-actions" aria-label="貼文互動資訊">
+        <div class='post-card-actions' aria-label='貼文互動資訊'>
           <button 
-            class="like-btn ${isLiked ? 'is-liked' : ''}" 
-            data-action="like" 
-            data-post-id="${post.post_id}"
-            data-liked="${isLiked}"
+            class='like-btn ${isLiked ? 'is-liked' : ''}' 
+            data-action='like' 
+            data-post-id='${post.post_id}'
+            data-liked='${isLiked}'
           >
-            <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
-            <span class="like-count">${post.like_count || 0}</span>
+            <span class='like-icon'>${isLiked ? '❤️' : '🤍'}</span>
+            <span class='like-count'>${post.like_count || 0}</span>
           </button>
           
-          <a class="meta-line" href="/post.html?id=${post.post_id}#comments" style="text-decoration:none; font-weight:700;">
+          <a class='meta-line' href='/post.html?id=${post.post_id}#comments' style='text-decoration:none; font-weight:700;'>
             留言 ${post.comment_count || 0}
           </a>
           
-          <span class="meta-line" style="font-weight:700;">收藏</span>
+          <span class='meta-line' style='font-weight:700;'>收藏</span>
         </div>
       </div>
     </div>
@@ -223,14 +242,14 @@ function renderAuthorAvatar(username, profileImage) {
 
   if (profileImage) {
     return `
-      <span class="post-avatar" style="--avatar-bg:${background};">
-        <img src="${escapeHtml(profileImage)}" alt="${escapeHtml(username)}">
+      <span class='post-avatar' style='--avatar-bg:${background};'>
+        <img src='${escapeHtml(profileImage)}' alt='${escapeHtml(username)}'>
       </span>
     `;
   }
 
   return `
-    <span class="post-avatar" style="--avatar-bg:${background};">
+    <span class='post-avatar' style='--avatar-bg:${background};'>
       ${escapeHtml(initial)}
     </span>
   `;
@@ -298,7 +317,7 @@ function renderPostTypeChip(postType) {
     return '';
   }
 
-  return `<span class="chip muted-chip">${escapeHtml(postType)}</span>`;
+  return `<span class='chip muted-chip'>${escapeHtml(postType)}</span>`;
 }
 
 initHome();

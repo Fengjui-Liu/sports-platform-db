@@ -78,21 +78,14 @@
                 <p class="section-copy">看看大家最近分享了什麼</p>
               </div>
 
-              <a
-                class="primary-btn"
-                href="/create.html?tab=posts"
-                style="
-                  text-decoration:none;
-                  display:inline-flex;
-                  align-items:center;
-                  justify-content:center;
-                  text-align:center;
-                  min-height:48px;
-                  line-height:1;
-                "
-              >
-                新增貼文
-              </a>
+              <div class="create-dropdown-container">
+                <button id="btn-create-menu" class="primary-btn" style="min-height:48px;">+ 新增內容</button>
+                <div id="create-dropdown-menu" class="create-dropdown-menu">
+                  <a href="/create.html?tab=posts">新增貼文</a>
+                  <a href="/create.html?tab=plans">新增計畫</a>
+                  <a href="/create.html?tab=invitations">新增揪團</a>
+                </div>
+              </div>
             </div>
 
             <div id="latest-posts" class="stack-list post-feed-list"></div>

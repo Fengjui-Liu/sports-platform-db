@@ -1,6 +1,77 @@
+// === 地圖與定位邏輯開始 ===
+window.initMap = function () {
+  const defaultPos = { lat: 25.0339, lng: 121.5644 }; // 預設為台北101附近
+
+  const mapContainer = document.getElementById("map-container");
+  if (!mapContainer) return; // 如果頁面沒有地圖容器就跳過
+
+  const map = new google.maps.Map(mapContainer, {
+    center: defaultPos,
+    zoom: 15,
+    disableDefaultUI: true,
+    zoomControl: true,
+  });
+
+  const marker = new google.maps.Marker({
+    position: defaultPos,
+    map: map,
+    draggable: true,
+    animation: google.maps.Animation.DROP,
+  });
+
+  // 監聽圖釘拖拽結束事件
+  marker.addListener("dragend", () => {
+    const pos = marker.getPosition();
+    updateCoords(pos.lat(), pos.lng());
+  });
+
+  setupGeoButton(map, marker);
+};
+
+function updateCoords(lat, lng) {
+  const latInput = document.getElementById('inv-lat');
+  const lngInput = document.getElementById('inv-lng');
+  if (latInput) latInput.value = lat;
+  if (lngInput) lngInput.value = lng;
+}
+
+function setupGeoButton(map, marker) {
+  const btn = document.getElementById('btn-get-geo');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert("您的瀏覽器不支援地理定位");
+      return;
+    }
+
+    btn.textContent = "定位中...";
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const newPos = { lat: latitude, lng: longitude };
+
+        map.setCenter(newPos);
+        marker.setPosition(newPos);
+        updateCoords(latitude, longitude);
+
+        btn.textContent = "定位目前位置";
+      },
+      () => {
+        alert("無法取得您的精確位置，請確認瀏覽器定位權限是否開啟。");
+        btn.textContent = "定位目前位置";
+      }
+    );
+  });
+}
+// === 地圖與定位邏輯結束 ===
+
+// === 頁面初始化與表單邏輯開始 ===
 async function initCreatePage() {
   fillUserIdInputs();
   setupTabs();
+  setupImagePreview();
 
   const currentUser = getCurrentUser();
   const params = getParams();
@@ -24,6 +95,24 @@ async function initCreatePage() {
   } catch (err) {
     window.alert(err.message);
   }
+}
+
+function setupImagePreview() {
+  const input = el('#post-image-input');
+  const preview = el('#post-image-preview');
+
+  if (!input || !preview) return;
+
+  input.addEventListener('change', () => {
+    preview.innerHTML = '';
+    const file = input.files[0];
+
+    if (file) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      preview.appendChild(img);
+    }
+  });
 }
 
 function activateCreateTab(tabName) {
@@ -98,9 +187,36 @@ function bindCreateForms(currentUser, boards) {
     event.preventDefault();
 
     const user = requireCurrentUser('請先登入再發文');
+    if (!user) return;
 
-    if (!user) {
-      return;
+    const submitBtn = postForm.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.textContent;
+    const imageInput = el('#post-image-input');
+
+    // 圖片上傳邏輯
+    if (imageInput && imageInput.files.length > 0) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = '上傳中...';
+
+      const formData = new FormData();
+      formData.append('image', imageInput.files[0]);
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
+        
+        if (!response.ok) throw new Error(result.error || '圖片上傳失敗');
+        
+        el('#post-image-url').value = result.imageUrl;
+      } catch (err) {
+        window.alert(err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+        return;
+      }
     }
 
     const payload = serializeForm(event.currentTarget);
@@ -110,16 +226,22 @@ function bindCreateForms(currentUser, boards) {
 
     if (!payload.board_id) {
       window.alert('請選擇要發佈的專欄');
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
       return;
     }
 
     if (!payload.title || !payload.title.trim()) {
       window.alert('請輸入貼文標題');
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
       return;
     }
 
     if (!payload.content || !payload.content.trim()) {
       window.alert('請輸入貼文內容');
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
       return;
     }
 
@@ -128,6 +250,8 @@ function bindCreateForms(currentUser, boards) {
       window.location.href = `/board.html?id=${payload.board_id}&tab=posts`;
     } catch (err) {
       window.alert(err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
     }
   });
 
