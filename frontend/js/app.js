@@ -8,38 +8,7 @@ const API = {
 };
 
 const BOARD_EMOJI_MAP = {
-  籃球: '🏀',
-  羽球: '🏸',
-  足球: '⚽',
-  棒球: '⚾',
-  網球: '🎾',
-  排球: '🏐',
-  桌球: '🏓',
-  跑步: '🏃',
-  慢跑: '🏃',
-  單車: '🚴',
-  自行車: '🚴',
-  游泳: '🏊',
-  健身: '💪',
-  重訓: '🏋️',
-  瑜珈: '🧘',
-  瑜伽: '🧘',
-  拳擊: '🥊',
-  登山: '⛰️',
-  攀岩: '🧗',
-  滑板: '🛹',
-  高爾夫: '⛳',
-  橄欖球: '🏈',
-  撞球: '🎱',
-  射箭: '🏹',
-  滑雪: '⛷️',
-  溜冰: '⛸️',
-  田徑: '🏃',
-  舞蹈: '💃',
-  飛盤: '🥏',
-  綜合: '🏅',
-  其他: '🏅',
-  default: '🏅',
+  default: '',
 };
 
 async function request(path, options = {}) {
@@ -263,7 +232,7 @@ function renderTopNav() {
 
   container.innerHTML = `
     <a class="brand-link" href="/">
-      <span class="brand-logo">🏃</span>
+      <span class="brand-logo">SB</span>
       <span class="brand-copy">
         <span class="brand-title">SportBoard</span>
         <span class="brand-subtitle">運動社群平台</span>
@@ -349,25 +318,25 @@ function renderBottomNav() {
     {
       href: '/',
       label: '首頁',
-      icon: '🏠',
+      icon: '',
       key: 'home',
     },
     {
       href: '/board.html',
       label: '專欄',
-      icon: '🏅',
+      icon: '',
       key: 'boards',
     },
     {
       href: '/create.html',
       label: '發文',
-      icon: '✍️',
+      icon: '',
       key: 'compose',
     },
     {
       href: user ? `/profile.html?id=${user.user_id}` : '/auth.html?mode=login',
       label: '我的',
-      icon: '👤',
+      icon: '',
       key: 'profile',
     },
   ];

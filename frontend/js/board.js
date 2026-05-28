@@ -163,9 +163,9 @@ function renderPostCard(post, boardName) {
         <p class="post-card-content">${escapeHtml(post.content || '')}</p>
 
         <div class="post-card-actions" aria-label="貼文互動資訊">
-          <span>❤️ ${post.like_count || 0}</span>
-          <span>💬 ${post.comment_count || 0}</span>
-          <span>🔖</span>
+          <span>按讚 ${post.like_count || 0}</span>
+          <span>留言 ${post.comment_count || 0}</span>
+          <span>收藏</span>
         </div>
       </div>
     </a>
@@ -215,24 +215,6 @@ function renderBoardTagText(boardName) {
 
 function getSportEmoji(boardName) {
   const emojiMap = {
-    籃球: '🏀',
-    跑步: '🏃',
-    健身: '💪',
-    羽球: '🏸',
-    足球: '⚽',
-    棒球: '⚾',
-    網球: '🎾',
-    游泳: '🏊',
-    瑜伽: '🧘',
-    basketball: '🏀',
-    running: '🏃',
-    fitness: '💪',
-    badminton: '🏸',
-    soccer: '⚽',
-    baseball: '⚾',
-    tennis: '🎾',
-    swimming: '🏊',
-    yoga: '🧘',
   };
 
   return emojiMap[String(boardName || '').toLowerCase()] || '';
@@ -292,7 +274,7 @@ function renderBoardPlans(boardPlans) {
                   data-id="${plan.plan_id}" 
                   data-saved="${Number(plan.saved_by_viewer) ? 'true' : 'false'}"
                 >
-                  ${Number(plan.saved_by_viewer) ? '已收藏' : '🔖 收藏'}
+                  ${Number(plan.saved_by_viewer) ? '已收藏' : '收藏'}
                 </button>
               </div>
 

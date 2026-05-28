@@ -36,6 +36,7 @@ async function initProfilePage() {
     renderProfile(user);
     renderStats(user);
     renderBodyRecords(bodyRecords);
+    
     renderSimpleList(
       '#profile-posts',
       posts,
@@ -51,13 +52,50 @@ async function initProfilePage() {
             <span class="meta-line">${formatDate(post.created_at)}</span>
           </div>
           <div class="chip-row">
-            <span class="chip muted-chip">❤️ ${post.like_count}</span>
-            <span class="chip muted-chip">💬 ${post.comment_count || 0}</span>
+            <span class="chip muted-chip">按讚 ${post.like_count}</span>
+            <span class="chip muted-chip">留言 ${post.comment_count || 0}</span>
           </div>
         </a>
       `,
       '目前沒有貼文'
     );
+
+    renderSimpleList(
+      '#profile-created-plans',
+      createdPlans,
+      (plan) => `
+        <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}">
+          <strong>${escapeHtml(plan.title)}</strong>
+          <p class="page-description">${escapeHtml(plan.exercise_name)} · ${plan.reps} reps × ${plan.sets} sets</p>
+        </a>
+      `,
+      '尚未建立計畫'
+    );
+
+    renderSimpleList(
+      '#profile-created-invitations',
+      createdInvitations,
+      (inv) => `
+        <a class="mini-card" href="/board.html?id=${inv.board_id}">
+          <strong>${escapeHtml(inv.title)}</strong>
+          <div class="meta-line">${escapeHtml(inv.location)} · ${formatDate(inv.event_time)}</div>
+        </a>
+      `,
+      '尚未發起揪團'
+    );
+
+    renderSimpleList(
+      '#profile-joined-invitations',
+      joinedInvitations,
+      (inv) => `
+        <a class="mini-card" href="/board.html?id=${inv.board_id}">
+          <strong>${escapeHtml(inv.title)}</strong>
+          <div class="meta-line">${escapeHtml(inv.location)} · ${formatDate(inv.event_time)}</div>
+        </a>
+      `,
+      '尚未參加揪團'
+    );
+
     renderSimpleList(
       '#profile-sessions',
       sessions,
@@ -85,19 +123,24 @@ async function initProfilePage() {
 
     bindProfileForms(userId, currentUser);
   } catch (err) {
-    showMessage(el('#profile-card'), err.message, true);
+    const card = el('#profile-card');
+    if (card) {
+      showMessage(card, err.message, true);
+    }
   }
 }
 
-<<<<<<< HEAD
-function renderProfile(user, stats = {}) {
-=======
 function renderProfile(user) {
+  const target = el('#profile-card');
+  if (!target) {
+    return;
+  }
+
   const avatar = user.profile_image
     ? `<img class="avatar" src="${escapeHtml(user.profile_image)}" alt="avatar">`
     : `<span class="avatar-circle" style="width:88px;height:88px;font-size:32px;">${escapeHtml(getUserInitials(user.username))}</span>`;
 
-  el('#profile-card').innerHTML = `
+  target.innerHTML = `
     <div class="profile-head">
       <div class="profile-summary">
         ${avatar}
@@ -124,24 +167,12 @@ function renderProfile(user) {
 }
 
 function renderStats(user) {
-  el('#profile-stats').innerHTML = `
-    <div class="stat-card">
-      <div class="meta-line">貼文數</div>
-      <div class="stat-value">${user.post_count}</div>
-    </div>
-    <div class="stat-card">
-      <div class="meta-line">訓練次數</div>
-      <div class="stat-value">${user.session_count}</div>
-    </div>
-    <div class="stat-card">
-      <div class="meta-line">收藏數</div>
-      <div class="stat-value">${user.saved_plan_count}</div>
-    </div>
-  `;
-}
+  const target = el('#profile-stats');
+  if (!target) {
+    return;
+  }
 
-function renderStats(user) {
-  el('#profile-stats').innerHTML = `
+  target.innerHTML = `
     <div class="stat-card">
       <div class="meta-line">貼文數</div>
       <div class="stat-value">${user.post_count}</div>
@@ -159,6 +190,9 @@ function renderStats(user) {
 
 function renderBodyRecords(records) {
   const chartShell = el('#bodyrecord-chart');
+  if (!chartShell) {
+    return;
+  }
 
   if (!records.length) {
     chartShell.innerHTML = createEmptyState('尚未建立身體數據');

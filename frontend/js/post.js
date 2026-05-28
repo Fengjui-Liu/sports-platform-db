@@ -27,7 +27,7 @@ async function initPostPage() {
 
 function renderPost(post, currentUser) {
   const isOwner = currentUser && Number(currentUser.user_id) === Number(post.user_id);
-  const likeButtonLabel = Number(post.liked_by_viewer) ? '取消按讚' : '❤️ 按讚';
+  const likeButtonLabel = Number(post.liked_by_viewer) ? '取消按讚' : '按讚';
 
   el('#post-detail').innerHTML = `
     <div class="action-row">
@@ -56,10 +56,10 @@ function renderPost(post, currentUser) {
         type="button"
         style="border:none; cursor:pointer;"
       >
-        ❤️ ${post.like_count || 0}
+        按讚 ${post.like_count || 0}
       </button>
 
-      <span class="chip">💬 ${post.comment_count || 0}</span>
+      <span class="chip">留言 ${post.comment_count || 0}</span>
 
       <div
         id="like-floating-list"

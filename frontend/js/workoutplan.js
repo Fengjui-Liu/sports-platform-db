@@ -26,7 +26,7 @@ async function initWorkoutPlanPage() {
 
 function renderPlan(plan, currentUser) {
   const isOwner = currentUser && Number(currentUser.user_id) === Number(plan.user_id);
-  const saveLabel = Number(plan.saved_by_viewer) ? '取消收藏' : '🔖 收藏';
+  const saveLabel = Number(plan.saved_by_viewer) ? '取消收藏' : '收藏';
 
   el('#plan-detail').innerHTML = `
     <p class="eyebrow">${escapeHtml(plan.sport_type)}</p>

@@ -45,7 +45,7 @@ function renderWelcomeBanner(currentUser) {
         </p>
 
         <h1 style="color:#ffffff;">
-          🏃 歡迎回來，${escapeHtml(currentUser.username)}
+          歡迎回來，${escapeHtml(currentUser.username)}
         </h1>
 
         <p 
@@ -73,7 +73,7 @@ function renderWelcomeBanner(currentUser) {
         </p>
 
         <h1 style="color:#ffffff;">
-          🏃 歡迎來到 SportBoard
+          歡迎來到 SportBoard
         </h1>
 
         <p 
@@ -142,9 +142,9 @@ function renderPostCard(post, boardName) {
         <p class="post-card-content">${escapeHtml(post.content || '')}</p>
 
         <div class="post-card-actions" aria-label="貼文互動資訊">
-          <span>❤️ ${post.like_count || 0}</span>
-          <span>💬 ${post.comment_count || 0}</span>
-          <span>🔖</span>
+          <span>按讚 ${post.like_count || 0}</span>
+          <span>留言 ${post.comment_count || 0}</span>
+          <span>收藏</span>
         </div>
       </div>
     </a>
@@ -194,24 +194,6 @@ function renderBoardTagText(boardName) {
 
 function getSportEmoji(boardName) {
   const emojiMap = {
-    籃球: '🏀',
-    跑步: '🏃',
-    健身: '💪',
-    羽球: '🏸',
-    足球: '⚽',
-    棒球: '⚾',
-    網球: '🎾',
-    游泳: '🏊',
-    瑜伽: '🧘',
-    basketball: '🏀',
-    running: '🏃',
-    fitness: '💪',
-    badminton: '🏸',
-    soccer: '⚽',
-    baseball: '⚾',
-    tennis: '🎾',
-    swimming: '🏊',
-    yoga: '🧘',
   };
 
   return emojiMap[String(boardName || '').toLowerCase()] || '';
