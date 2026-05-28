@@ -1,27 +1,108 @@
--- 1. 更新使用者表：增加技能等級
-ALTER TABLE USER
-ADD COLUMN IF NOT EXISTS skill_levels JSON DEFAULT NULL;
+-- Migration v2: 使用 Stored Procedure 實現 MySQL 相容的 IF NOT EXISTS 欄位新增
 
--- 2. 更新揪團表：增加空間座標與要求的技能等級
-ALTER TABLE WORKOUTINVITATION
-ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8) DEFAULT NULL,
-ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8) DEFAULT NULL,
-ADD COLUMN IF NOT EXISTS required_skill_level INT DEFAULT 1;
+DROP PROCEDURE IF EXISTS run_migration_v2;
 
--- 3. 增加空間座標點 (容許舊資料沒有經緯度)
-ALTER TABLE WORKOUTINVITATION
-ADD COLUMN IF NOT EXISTS location_point POINT AS (ST_PointFromText(CONCAT('POINT(', COALESCE(longitude, 0), ' ', COALESCE(latitude, 0), ')'), 4326)) STORED NULL;
+DELIMITER //
 
--- 4. 建立空間索引與常用查詢索引
-CREATE SPATIAL INDEX IF NOT EXISTS idx_invitation_location ON WORKOUTINVITATION (location_point);
-CREATE INDEX IF NOT EXISTS idx_invitation_time ON WORKOUTINVITATION (event_time);
-CREATE INDEX IF NOT EXISTS idx_invitation_skill ON WORKOUTINVITATION (required_skill_level);
+CREATE PROCEDURE run_migration_v2()
+BEGIN
+    -- 1. USER 表：新增 skill_levels
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'USER' AND COLUMN_NAME = 'skill_levels'
+    ) THEN
+        ALTER TABLE USER ADD COLUMN skill_levels JSON DEFAULT NULL;
+    END IF;
 
--- 5. 更新參與者表：增加候補狀態機制
-ALTER TABLE INVITATIONPARTICIPANT
-ADD COLUMN IF NOT EXISTS status ENUM('confirmed', 'waitlisted', 'cancelled') DEFAULT 'confirmed';
-CREATE INDEX IF NOT EXISTS idx_participant_status ON INVITATIONPARTICIPANT (status);
+    -- 2. WORKOUTINVITATION 表：新增經緯度與技能等級
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND COLUMN_NAME = 'latitude'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION ADD COLUMN latitude DECIMAL(10, 8) DEFAULT NULL;
+    END IF;
 
--- 6. 動態牆效能優化索引
-CREATE INDEX IF NOT EXISTS idx_post_feed ON POST (board_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_comment_lookup ON COMMENT (post_id, created_at ASC);
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND COLUMN_NAME = 'longitude'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION ADD COLUMN longitude DECIMAL(11, 8) DEFAULT NULL;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND COLUMN_NAME = 'required_skill_level'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION ADD COLUMN required_skill_level INT DEFAULT 1;
+    END IF;
+
+    -- 3. 新增空間座標欄位（Generated Column，依賴 latitude/longitude 先存在）
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND COLUMN_NAME = 'location_point'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION
+        ADD COLUMN location_point POINT AS (
+            ST_PointFromText(CONCAT('POINT(', COALESCE(longitude, 0), ' ', COALESCE(latitude, 0), ')'), 4326)
+        ) STORED NULL;
+    END IF;
+
+    -- 4. 空間索引與查詢索引
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND INDEX_NAME = 'idx_invitation_location'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION ADD SPATIAL INDEX idx_invitation_location (location_point);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND INDEX_NAME = 'idx_invitation_time'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION ADD INDEX idx_invitation_time (event_time);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND INDEX_NAME = 'idx_invitation_skill'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION ADD INDEX idx_invitation_skill (required_skill_level);
+    END IF;
+
+    -- 5. INVITATIONPARTICIPANT 表：新增候補狀態欄位
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'INVITATIONPARTICIPANT' AND COLUMN_NAME = 'status'
+    ) THEN
+        ALTER TABLE INVITATIONPARTICIPANT
+        ADD COLUMN status ENUM('confirmed', 'waitlisted', 'cancelled') DEFAULT 'confirmed';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'INVITATIONPARTICIPANT' AND INDEX_NAME = 'idx_participant_status'
+    ) THEN
+        ALTER TABLE INVITATIONPARTICIPANT ADD INDEX idx_participant_status (status);
+    END IF;
+
+    -- 6. 動態牆效能優化索引
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'POST' AND INDEX_NAME = 'idx_post_feed'
+    ) THEN
+        ALTER TABLE POST ADD INDEX idx_post_feed (board_id, created_at);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'COMMENT' AND INDEX_NAME = 'idx_comment_lookup'
+    ) THEN
+        ALTER TABLE COMMENT ADD INDEX idx_comment_lookup (post_id, created_at);
+    END IF;
+
+END //
+
+DELIMITER ;
+
+CALL run_migration_v2();
+DROP PROCEDURE IF EXISTS run_migration_v2;
