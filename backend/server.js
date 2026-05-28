@@ -16,6 +16,7 @@ const commentRoutes = require('./routes/comments');
 const workoutPlanRoutes = require('./routes/workoutplans');
 const sessionRoutes = require('./routes/sessions');
 const invitationRoutes = require('./routes/invitations');
+const uploadRoutes = require('./routes/upload');
 
 app.use('/api/users', userRoutes);
 app.use('/api/boards', boardRoutes);
@@ -24,6 +25,9 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/workoutplans', workoutPlanRoutes);
 app.use('/api', sessionRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/upload', uploadRoutes);
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
