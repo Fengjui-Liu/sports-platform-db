@@ -65,7 +65,7 @@ async function initBoardPage() {
     });
 
     renderBoardHero(board, posts.length, boardPlans, invitations);
-    renderBoardPosts(posts);
+    renderBoardPosts(posts, board);
     renderBoardPlans(boardPlans);
     renderBoardInvitations(invitations, currentUser, boardId);
 
@@ -130,7 +130,7 @@ function renderBoardHero(board, fallbackPostCount = 0, plans = [], invitations =
   `;
 }
 
-function renderBoardPosts(posts) {
+function renderBoardPosts(posts, board = {}) {
   const target = el('#board-posts');
 
   if (!target) {
@@ -139,35 +139,131 @@ function renderBoardPosts(posts) {
 
   target.innerHTML = posts.length
     ? posts
-        .map(
-          (post) => `
-            <a class="list-card" href="/post.html?id=${post.post_id}">
-              <div class="action-row">
-                <div>
-                  <strong>${escapeHtml(post.username || '未知使用者')}</strong>
-                  <div class="chip-row" style="margin-top:8px;">
-                    ${renderPostTypeChip(post.post_type)}
-                  </div>
-                </div>
-
-                <span class="meta-line">${formatDate(post.created_at)}</span>
-              </div>
-
-              <h3>${escapeHtml(post.title || '未命名貼文')}</h3>
-
-              <p class="page-description">
-                ${escapeHtml(truncateText(post.content || '', 180))}
-              </p>
-
-              <div class="chip-row">
-                <span class="chip muted-chip">❤️ ${post.like_count || 0}</span>
-                <span class="chip muted-chip">💬 ${post.comment_count || 0}</span>
-              </div>
-            </a>
-          `
-        )
+        .map((post) => renderPostCard(post, board.sport_type || post.board_name || '未分類'))
         .join('')
     : createEmptyState('這個專欄還沒有貼文，成為第一個發文的人吧！');
+}
+
+function renderPostCard(post, boardName) {
+  const username = post.username || '未知使用者';
+
+  return `
+    <a class="list-card post-feed-card" href="/post.html?id=${post.post_id}">
+      ${renderAuthorAvatar(username, post.profile_image)}
+
+      <div class="post-card-body">
+        <div class="post-card-meta">
+          <strong class="post-author">${escapeHtml(username)}</strong>
+          <span class="meta-dot">•</span>
+          <span class="post-board-tag">${renderBoardTagText(boardName)}</span>
+          <span class="meta-dot">•</span>
+          <span class="post-time">${formatPostTime(post.created_at)}</span>
+        </div>
+
+        <p class="post-card-content">${escapeHtml(post.content || '')}</p>
+
+        <div class="post-card-actions" aria-label="貼文互動資訊">
+          <span>❤️ ${post.like_count || 0}</span>
+          <span>💬 ${post.comment_count || 0}</span>
+          <span>🔖</span>
+        </div>
+      </div>
+    </a>
+  `;
+}
+
+function renderAuthorAvatar(username, profileImage) {
+  const initial = getUserInitial(username);
+  const background = getAvatarGradient(username);
+
+  if (profileImage) {
+    return `
+      <span class="post-avatar" style="--avatar-bg:${background};">
+        <img src="${escapeHtml(profileImage)}" alt="${escapeHtml(username)}">
+      </span>
+    `;
+  }
+
+  return `
+    <span class="post-avatar" style="--avatar-bg:${background};">
+      ${escapeHtml(initial)}
+    </span>
+  `;
+}
+
+function getUserInitial(username) {
+  return String(username || 'U').trim().slice(0, 1).toUpperCase() || 'U';
+}
+
+function getAvatarGradient(username) {
+  const gradients = [
+    'linear-gradient(135deg, #1f4396, #2d9ce0)',
+    'linear-gradient(135deg, #ff6b35, #ffb86c)',
+    'linear-gradient(135deg, #2ecc71, #16a085)',
+    'linear-gradient(135deg, #9b59b6, #6c5ce7)',
+    'linear-gradient(135deg, #34495e, #95a5a6)',
+  ];
+  const seed = String(username || 'U').charCodeAt(0) || 0;
+  return gradients[seed % gradients.length];
+}
+
+function renderBoardTagText(boardName) {
+  const emoji = getSportEmoji(boardName);
+  const label = escapeHtml(boardName || '未分類');
+  return emoji ? `${emoji} ${label}` : label;
+}
+
+function getSportEmoji(boardName) {
+  const emojiMap = {
+    籃球: '🏀',
+    跑步: '🏃',
+    健身: '💪',
+    羽球: '🏸',
+    足球: '⚽',
+    棒球: '⚾',
+    網球: '🎾',
+    游泳: '🏊',
+    瑜伽: '🧘',
+    basketball: '🏀',
+    running: '🏃',
+    fitness: '💪',
+    badminton: '🏸',
+    soccer: '⚽',
+    baseball: '⚾',
+    tennis: '🎾',
+    swimming: '🏊',
+    yoga: '🧘',
+  };
+
+  return emojiMap[String(boardName || '').toLowerCase()] || '';
+}
+
+function formatPostTime(value) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 60) {
+    return `${Math.max(1, diffMinutes)} 分鐘前`;
+  }
+
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('zh-TW', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  return date.toLocaleDateString('zh-TW', {
+    month: '2-digit',
+    day: '2-digit',
+  });
 }
 
 function renderBoardPlans(boardPlans) {
