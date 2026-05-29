@@ -78,19 +78,32 @@ function renderPost(post, currentUser) {
           padding:16px;
         "
       >
-        ${renderLikeFloatingList(post.like_usernames)}
+        ${renderLikeFloatingList(post)}
       </div>
     </div>
   `;
 }
 
-function renderLikeFloatingList(likeUsernames) {
-  const names = String(likeUsernames || '')
-    .split(',')
-    .map((name) => name.trim())
-    .filter(Boolean);
+function normalizeLikeUsers(post) {
+  if (Array.isArray(post.like_users)) {
+    return post.like_users
+      .map((user) => ({
+        id: user.id || user.user_id,
+        username: user.username || user.name || user.display_name || user.user_name,
+      }))
+      .filter((user) => user.username);
+  }
 
-  if (!names.length) {
+  return String(post.like_usernames || '')
+    .split(',')
+    .map((username) => ({ username: username.trim() }))
+    .filter((user) => user.username);
+}
+
+function renderLikeFloatingList(post) {
+  const users = normalizeLikeUsers(post);
+
+  if (!users.length) {
     return `
       <strong style="display:block; color:#123f91; margin-bottom:10px;">按讚名單</strong>
       <div class="meta-line">目前還沒有人按讚這篇貼文</div>
@@ -100,8 +113,8 @@ function renderLikeFloatingList(likeUsernames) {
   return `
     <strong style="display:block; color:#123f91; margin-bottom:12px;">按讚名單</strong>
     <div class="chip-row">
-      ${names
-        .map((name) => `<span class="chip muted-chip">${escapeHtml(name)}</span>`)
+      ${users
+        .map((user) => `<span class="chip muted-chip">${escapeHtml(user.username)}</span>`)
         .join('')}
     </div>
   `;

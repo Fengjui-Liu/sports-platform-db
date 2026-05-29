@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
     }
 
     const [rows] = await db.query(
-      `SELECT p.post_id, p.user_id, p.board_id, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
               u.username, u.profile_image, b.sport_type AS board_name,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count,
@@ -51,13 +51,14 @@ router.get('/', async (req, res) => {
 
 // 新增貼文
 router.post('/', async (req, res) => {
-  if (!ensureRequired(res, req.body, ['user_id', 'board_id', 'content'])) {
+  if (!ensureRequired(res, req.body, ['user_id', 'board_id', 'title', 'content'])) {
     return;
   }
 
   const {
     user_id,
     board_id,
+    title,
     post_type = 'text',
     content,
     image_url = null,
@@ -74,15 +75,16 @@ router.post('/', async (req, res) => {
     }
 
     const [result] = await db.query(
-      `INSERT INTO POST (user_id, board_id, post_type, content, image_url, created_at)
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [user_id, board_id, post_type, content, image_url || null]
+      `INSERT INTO POST (user_id, board_id, title, post_type, content, image_url, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+      [user_id, board_id, title.trim(), post_type, content, image_url || null]
     );
 
     res.status(201).json({
       message: '建立貼文成功',
       post_id: result.insertId,
       board_id,
+      title: title.trim(),
     });
   } catch (err) {
     sendServerError(res, err);
@@ -103,12 +105,18 @@ router.get('/:id', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT p.post_id, p.user_id, p.board_id, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
               u.username, u.email, u.bio, u.profile_image,
               b.sport_type AS board_name, b.description AS board_description,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count,
-              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer
+              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer,
+              (
+                SELECT GROUP_CONCAT(CONCAT(lu2.user_id, ':', lu2.username) ORDER BY l2.created_at DESC SEPARATOR ',')
+                FROM POSTLIKE l2
+                JOIN USER lu2 ON lu2.user_id = l2.user_id
+                WHERE l2.post_id = p.post_id
+              ) AS like_users_raw
        FROM POST p
        JOIN USER u ON u.user_id = p.user_id
        JOIN SPORTBOARD b ON b.board_id = p.board_id
@@ -124,7 +132,21 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: '找不到貼文' });
     }
 
-    res.json(rows[0]);
+    const post = rows[0];
+    post.like_users = String(post.like_users_raw || '')
+      .split(',')
+      .map((item) => {
+        const [id, ...usernameParts] = item.split(':');
+        return {
+          id: Number(id),
+          username: usernameParts.join(':'),
+        };
+      })
+      .filter((user) => user.id && user.username);
+    post.like_usernames = post.like_users.map((user) => user.username).join(',');
+    delete post.like_users_raw;
+
+    res.json(post);
   } catch (err) {
     sendServerError(res, err);
   }
@@ -177,11 +199,11 @@ router.put('/:id', async (req, res) => {
     return res.status(400).json({ error: '無效的 post id' });
   }
 
-  if (!ensureRequired(res, req.body, ['user_id', 'content'])) {
+  if (!ensureRequired(res, req.body, ['user_id', 'title', 'content'])) {
     return;
   }
 
-  const { user_id, content, image_url = null } = req.body;
+  const { user_id, title, content, image_url = null } = req.body;
 
   try {
     const [[post]] = await db.query(
@@ -198,8 +220,8 @@ router.put('/:id', async (req, res) => {
     }
 
     await db.query(
-      'UPDATE POST SET content = ?, image_url = ? WHERE post_id = ?',
-      [content, image_url, postId]
+      'UPDATE POST SET title = ?, content = ?, image_url = ? WHERE post_id = ?',
+      [title.trim(), content, image_url, postId]
     );
 
     res.json({ message: '修改貼文成功' });
@@ -233,6 +255,29 @@ router.get('/:id/comments', async (req, res) => {
     );
 
     res.json(rows);
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.get('/:id/likes', async (req, res) => {
+  const postId = parseId(req.params.id);
+
+  if (Number.isNaN(postId)) {
+    return res.status(400).json({ error: '無效的 post id' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT u.user_id AS id, u.username, u.profile_image, l.created_at
+       FROM POSTLIKE l
+       JOIN USER u ON u.user_id = l.user_id
+       WHERE l.post_id = ?
+       ORDER BY l.created_at DESC, u.user_id DESC`,
+      [postId]
+    );
+
+    res.json({ likes: rows });
   } catch (err) {
     sendServerError(res, err);
   }

@@ -55,7 +55,7 @@ function renderPlan(plan, currentUser) {
         </div>
       </div>
     </div>
-    <div class="meta-line" style="margin-top:16px;">目前收藏數：${plan.save_count}</div>
+    <div id="plan-save-count" class="meta-line" style="margin-top:16px;">目前收藏數：${plan.save_count || 0}</div>
   `;
 }
 
@@ -74,12 +74,22 @@ function bindWorkoutPlanActions(planId, plan, currentUser) {
     }
 
     try {
-      if (Number(plan.saved_by_viewer)) {
-        await API.delete(`/workoutplans/${planId}/save`, { user_id: user.user_id });
-      } else {
-        await API.post(`/workoutplans/${planId}/save`, { user_id: user.user_id });
+      const result = Number(plan.saved_by_viewer)
+        ? await API.delete(`/workoutplans/${planId}/save`, { user_id: user.user_id })
+        : await API.post(`/workoutplans/${planId}/save`, { user_id: user.user_id });
+
+      plan.saved_by_viewer = Number(result.saved_by_viewer);
+      plan.save_count = Math.max(0, Number(result.save_count || 0));
+
+      const saveButton = el('#save-plan-btn');
+      if (saveButton) {
+        saveButton.textContent = Number(plan.saved_by_viewer) ? '取消收藏' : '收藏';
       }
-      window.location.reload();
+
+      const saveCount = el('#plan-save-count');
+      if (saveCount) {
+        saveCount.textContent = `目前收藏數：${plan.save_count}`;
+      }
     } catch (err) {
       showMessage(status, err.message, true);
     }

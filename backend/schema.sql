@@ -69,6 +69,7 @@ CREATE TABLE POST (
   post_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   board_id INT NOT NULL,
+  title VARCHAR(255) NOT NULL,
   post_type VARCHAR(50) NOT NULL,
   content TEXT NOT NULL,
   image_url VARCHAR(255),

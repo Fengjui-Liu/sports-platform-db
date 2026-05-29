@@ -476,6 +476,13 @@ strong {
   -webkit-line-clamp: 3;
 }
 
+.post-card-title {
+  margin: 0;
+  color: #1f4396;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
 .post-card-actions {
   display: flex;
   align-items: center;
@@ -527,10 +534,6 @@ strong {
 
 .post-card-link-overlay:hover .post-card-content {
   color: var(--primary);
-}
-
-#profile-posts .list-card h3 {
-  display: none;
 }
 
 .chip-row {

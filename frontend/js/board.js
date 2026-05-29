@@ -43,7 +43,11 @@ async function initBoardPage() {
         console.error('載入貼文失敗：', err);
         return [];
       }),
-      API.get('/workoutplans').catch((err) => {
+      API.get(
+        currentUser
+          ? `/workoutplans?viewer_id=${currentUser.user_id}`
+          : '/workoutplans'
+      ).catch((err) => {
         console.error('載入訓練計畫失敗：', err);
         return [];
       }),
@@ -160,6 +164,7 @@ function renderPostCard(post, boardName) {
           <span class="post-time">${formatPostTime(post.created_at)}</span>
         </div>
 
+        <h3 class="post-card-title">${escapeHtml(post.title || '未命名貼文')}</h3>
         <p class="post-card-content">${escapeHtml(post.content || '')}</p>
 
         <div class="post-card-actions" aria-label="貼文互動資訊">
@@ -274,7 +279,7 @@ function renderBoardPlans(boardPlans) {
                   data-id="${plan.plan_id}" 
                   data-saved="${Number(plan.saved_by_viewer) ? 'true' : 'false'}"
                 >
-                  ${Number(plan.saved_by_viewer) ? '已收藏' : '收藏'}
+                  ${Number(plan.saved_by_viewer) ? '取消收藏' : '收藏'}
                 </button>
               </div>
 
@@ -287,7 +292,11 @@ function renderBoardPlans(boardPlans) {
                   ${plan.reps || 0} reps
                 </p>
 
-                <div class="meta-line">
+                <div
+                  class="meta-line plan-save-count"
+                  data-plan-id="${plan.plan_id}"
+                  data-author="${escapeHtml(plan.username || '未知使用者')}"
+                >
                   收藏數 ${plan.save_count || 0} · by ${escapeHtml(plan.username || '未知使用者')}
                 </div>
               </a>
@@ -306,23 +315,37 @@ function renderBoardPlans(boardPlans) {
       }
 
       try {
-        if (button.dataset.saved === 'true') {
-          await API.delete(`/workoutplans/${button.dataset.id}/save`, {
+        const wasSaved = button.dataset.saved === 'true';
+        const result = wasSaved
+          ? await API.delete(`/workoutplans/${button.dataset.id}/save`, {
+            user_id: user.user_id,
+          })
+          : await API.post(`/workoutplans/${button.dataset.id}/save`, {
             user_id: user.user_id,
           });
-        } else {
-          await API.post(`/workoutplans/${button.dataset.id}/save`, {
-            user_id: user.user_id,
-          });
-        }
 
-        const currentBoardId = getParams().get('id') || getParams().get('board_id');
-        goToBoardTab(currentBoardId, 'plans');
+        updatePlanSaveButton(button, result);
       } catch (err) {
         window.alert(err.message);
       }
     });
   });
+}
+
+function updatePlanSaveButton(button, result) {
+  const isSaved = Boolean(Number(result.saved_by_viewer));
+  const saveCount = Math.max(0, Number(result.save_count || 0));
+  const saveCountEl = document.querySelector(
+    `.plan-save-count[data-plan-id="${button.dataset.id}"]`
+  );
+
+  button.dataset.saved = isSaved ? 'true' : 'false';
+  button.textContent = isSaved ? '取消收藏' : '收藏';
+
+  if (saveCountEl) {
+    const author = saveCountEl.dataset.author || '';
+    saveCountEl.textContent = `收藏數 ${saveCount}${author ? ` · by ${author}` : ''}`;
+  }
 }
 
 function getInvitationActionState(item, currentUser) {

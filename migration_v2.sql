@@ -1,12 +1,15 @@
--- Migration v2: 使用 Stored Procedure 實現 MySQL 相容的 IF NOT EXISTS 欄位新增
+-- Migration v2: add profile, invitation, participant, and lookup indexes.
+-- location_point is a regular POINT column maintained by triggers for wider
+-- MySQL compatibility. Some servers reject generated spatial columns.
 
 DROP PROCEDURE IF EXISTS run_migration_v2;
+DROP TRIGGER IF EXISTS workoutinvitation_location_bi;
+DROP TRIGGER IF EXISTS workoutinvitation_location_bu;
 
 DELIMITER //
 
 CREATE PROCEDURE run_migration_v2()
 BEGIN
-    -- 1. USER 表：新增 skill_levels
     IF NOT EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'USER' AND COLUMN_NAME = 'skill_levels'
@@ -14,7 +17,6 @@ BEGIN
         ALTER TABLE USER ADD COLUMN skill_levels JSON DEFAULT NULL;
     END IF;
 
-    -- 2. WORKOUTINVITATION 表：新增經緯度與技能等級
     IF NOT EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND COLUMN_NAME = 'latitude'
@@ -36,24 +38,34 @@ BEGIN
         ALTER TABLE WORKOUTINVITATION ADD COLUMN required_skill_level INT DEFAULT 1;
     END IF;
 
-    -- 3. 新增空間座標欄位（Generated Column，依賴 latitude/longitude 先存在）
-    IF NOT EXISTS (
-        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND COLUMN_NAME = 'location_point'
-    ) THEN
-        ALTER TABLE WORKOUTINVITATION
-        ADD COLUMN location_point POINT AS (
-            ST_PointFromText(CONCAT('POINT(', COALESCE(longitude, 0), ' ', COALESCE(latitude, 0), ')'), 4326)
-        ) STORED NULL;
-    END IF;
-
-    -- 4. 空間索引與查詢索引
-    IF NOT EXISTS (
+    IF EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND INDEX_NAME = 'idx_invitation_location'
     ) THEN
-        ALTER TABLE WORKOUTINVITATION ADD SPATIAL INDEX idx_invitation_location (location_point);
+        ALTER TABLE WORKOUTINVITATION DROP INDEX idx_invitation_location;
     END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'WORKOUTINVITATION' AND COLUMN_NAME = 'location_point'
+    ) THEN
+        ALTER TABLE WORKOUTINVITATION DROP COLUMN location_point;
+    END IF;
+
+    ALTER TABLE WORKOUTINVITATION ADD COLUMN location_point POINT NULL;
+
+    UPDATE WORKOUTINVITATION
+    SET location_point = ST_PointFromText(
+        CONCAT('POINT(', COALESCE(longitude, 0), ' ', COALESCE(latitude, 0), ')'),
+        4326
+    );
+
+    UPDATE WORKOUTINVITATION
+    SET location_point = ST_PointFromText('POINT(0 0)', 4326)
+    WHERE location_point IS NULL;
+
+    ALTER TABLE WORKOUTINVITATION MODIFY COLUMN location_point POINT NOT NULL;
+    ALTER TABLE WORKOUTINVITATION ADD SPATIAL INDEX idx_invitation_location (location_point);
 
     IF NOT EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
@@ -69,7 +81,6 @@ BEGIN
         ALTER TABLE WORKOUTINVITATION ADD INDEX idx_invitation_skill (required_skill_level);
     END IF;
 
-    -- 5. INVITATIONPARTICIPANT 表：新增候補狀態欄位
     IF NOT EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'INVITATIONPARTICIPANT' AND COLUMN_NAME = 'status'
@@ -85,24 +96,66 @@ BEGIN
         ALTER TABLE INVITATIONPARTICIPANT ADD INDEX idx_participant_status (status);
     END IF;
 
-    -- 6. 動態牆效能優化索引
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'POST' AND COLUMN_NAME = 'title'
+    ) THEN
+        ALTER TABLE POST ADD COLUMN title VARCHAR(255) NULL AFTER board_id;
+
+        UPDATE POST
+        SET title = COALESCE(NULLIF(TRIM(LEFT(content, 80)), ''), CONCAT('貼文 #', post_id))
+        WHERE title IS NULL OR TRIM(title) = '';
+
+        ALTER TABLE POST MODIFY COLUMN title VARCHAR(255) NOT NULL;
+    END IF;
+
     IF NOT EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'POST' AND INDEX_NAME = 'idx_post_feed'
     ) THEN
-        ALTER TABLE POST ADD INDEX idx_post_feed (board_id, created_at);
+        ALTER TABLE POST ADD INDEX idx_post_feed (board_id, created_at DESC);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'POSTLIKE' AND INDEX_NAME = 'idx_postlike_post_created'
+    ) THEN
+        ALTER TABLE POSTLIKE ADD INDEX idx_postlike_post_created (post_id, created_at);
     END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'COMMENT' AND INDEX_NAME = 'idx_comment_lookup'
     ) THEN
-        ALTER TABLE COMMENT ADD INDEX idx_comment_lookup (post_id, created_at);
+        ALTER TABLE COMMENT ADD INDEX idx_comment_lookup (post_id, created_at ASC);
     END IF;
-
 END //
 
 DELIMITER ;
 
 CALL run_migration_v2();
 DROP PROCEDURE IF EXISTS run_migration_v2;
+
+DELIMITER //
+
+CREATE TRIGGER workoutinvitation_location_bi
+BEFORE INSERT ON WORKOUTINVITATION
+FOR EACH ROW
+BEGIN
+    SET NEW.location_point = ST_PointFromText(
+        CONCAT('POINT(', COALESCE(NEW.longitude, 0), ' ', COALESCE(NEW.latitude, 0), ')'),
+        4326
+    );
+END //
+
+CREATE TRIGGER workoutinvitation_location_bu
+BEFORE UPDATE ON WORKOUTINVITATION
+FOR EACH ROW
+BEGIN
+    SET NEW.location_point = ST_PointFromText(
+        CONCAT('POINT(', COALESCE(NEW.longitude, 0), ' ', COALESCE(NEW.latitude, 0), ')'),
+        4326
+    );
+END //
+
+DELIMITER ;

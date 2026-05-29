@@ -162,6 +162,7 @@ function renderPostCard(post, boardName) {
             <span class='post-time'>${formatPostTime(post.created_at)}</span>
           </div>
 
+          <h3 class='post-card-title'>${escapeHtml(post.title || '未命名貼文')}</h3>
           <p class='post-card-content'>${escapeHtml(post.content || '')}</p>
         </a>
 

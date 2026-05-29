@@ -47,7 +47,7 @@ async function initProfilePage() {
               <div class="chip-row">
                 <span class="chip">${getBoardEmoji(post.board_name)} ${escapeHtml(post.board_name)}</span>
               </div>
-              <h3 style="margin-top:12px;">${escapeHtml(post.content).slice(0, 42) || '未命名貼文'}</h3>
+              <h3 style="margin-top:12px;">${escapeHtml(post.title || '未命名貼文')}</h3>
             </div>
             <span class="meta-line">${formatDate(post.created_at)}</span>
           </div>

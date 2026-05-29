@@ -159,7 +159,9 @@ router.get('/:id/posts', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT p.post_id, p.board_id, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.board_id,
+              COALESCE(NULLIF(TRIM(p.title), ''), '未命名貼文') AS title,
+              p.post_type, p.content, p.image_url, p.created_at,
               b.sport_type AS board_name,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count
@@ -168,7 +170,8 @@ router.get('/:id/posts', async (req, res) => {
        LEFT JOIN POSTLIKE l ON l.post_id = p.post_id
        LEFT JOIN COMMENT c ON c.post_id = p.post_id
        WHERE p.user_id = ?
-       GROUP BY p.post_id
+       GROUP BY p.post_id, p.board_id, p.title, p.post_type, p.content, p.image_url,
+                p.created_at, b.sport_type
        ORDER BY p.created_at DESC, p.post_id DESC`,
       [userId]
     );
