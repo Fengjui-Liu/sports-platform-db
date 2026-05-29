@@ -1099,6 +1099,9 @@ strong {
   color: var(--primary);
 }
 
+/* ── Bootstrap-compatible utility ── */
+.d-none { display: none !important; }
+
 /* ── Invitation Badge ── */
 .invitation-badge {
   display: inline-flex;

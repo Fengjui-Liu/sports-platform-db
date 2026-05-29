@@ -44,6 +44,9 @@ router.post('/', async (req, res) => {
     muscle_group = '',
     reps = 0,
     sets = 0,
+    target_distance = null,
+    target_duration = null,
+    rounds = null,
   } = req.body;
 
   const normalizedDifficultyLevel = normalizeDifficultyLevel(difficulty_level);
@@ -58,18 +61,13 @@ router.post('/', async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO WORKOUTPLAN (
          user_id, title, is_public, sport_type, difficulty_level,
-         exercise_name, muscle_group, reps, \`sets\`, created_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+         exercise_name, muscle_group, reps, \`sets\`,
+         target_distance, target_duration, rounds, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        user_id,
-        title,
-        is_public,
-        sport_type,
-        normalizedDifficultyLevel,
-        exercise_name,
-        muscle_group,
-        reps,
-        sets,
+        user_id, title, is_public, sport_type, normalizedDifficultyLevel,
+        exercise_name, muscle_group, reps, sets,
+        target_distance || null, target_duration || null, rounds || null,
       ]
     );
 
@@ -106,7 +104,8 @@ router.get('/', async (req, res) => {
 
     const [rows] = await db.query(
       `SELECT w.plan_id, w.user_id, w.title, w.is_public, w.sport_type, w.difficulty_level,
-              w.exercise_name, w.muscle_group, w.reps, w.\`sets\`, w.created_at,
+              w.exercise_name, w.muscle_group, w.reps, w.\`sets\`,
+              w.target_distance, w.target_duration, w.rounds, w.created_at,
               u.username,
               COUNT(DISTINCT s.user_id) AS save_count,
               MAX(CASE WHEN ws.user_id IS NULL THEN 0 ELSE 1 END) AS saved_by_viewer
@@ -116,7 +115,8 @@ router.get('/', async (req, res) => {
        LEFT JOIN WORKOUTPLANSAVE ws ON ws.plan_id = w.plan_id AND ws.user_id = ?
        ${whereClause}
        GROUP BY w.plan_id, w.user_id, w.title, w.is_public, w.sport_type, w.difficulty_level,
-                w.exercise_name, w.muscle_group, w.reps, w.\`sets\`, w.created_at, u.username
+                w.exercise_name, w.muscle_group, w.reps, w.\`sets\`,
+                w.target_distance, w.target_duration, w.rounds, w.created_at, u.username
        ORDER BY w.created_at DESC, w.plan_id DESC`,
       params
     );
@@ -148,7 +148,8 @@ router.get('/:id', async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT w.plan_id, w.user_id, w.title, w.is_public, w.sport_type, w.difficulty_level,
-              w.exercise_name, w.muscle_group, w.reps, w.\`sets\`, w.created_at,
+              w.exercise_name, w.muscle_group, w.reps, w.\`sets\`,
+              w.target_distance, w.target_duration, w.rounds, w.created_at,
               u.username, u.profile_image,
               COUNT(DISTINCT s.user_id) AS save_count,
               MAX(CASE WHEN ws.user_id IS NULL THEN 0 ELSE 1 END) AS saved_by_viewer
@@ -158,7 +159,8 @@ router.get('/:id', async (req, res) => {
        LEFT JOIN WORKOUTPLANSAVE ws ON ws.plan_id = w.plan_id AND ws.user_id = ?
        WHERE w.plan_id = ?
        GROUP BY w.plan_id, w.user_id, w.title, w.is_public, w.sport_type, w.difficulty_level,
-                w.exercise_name, w.muscle_group, w.reps, w.\`sets\`, w.created_at,
+                w.exercise_name, w.muscle_group, w.reps, w.\`sets\`,
+                w.target_distance, w.target_duration, w.rounds, w.created_at,
                 u.username, u.profile_image`,
       [viewerId, planId]
     );
@@ -210,6 +212,9 @@ router.put('/:id', async (req, res) => {
     muscle_group = '',
     sets,
     reps,
+    target_distance = null,
+    target_duration = null,
+    rounds = null,
   } = req.body;
 
   const normalizedDifficultyLevel = normalizeDifficultyLevel(difficulty_level);
@@ -237,17 +242,13 @@ router.put('/:id', async (req, res) => {
     await db.query(
       `UPDATE WORKOUTPLAN
        SET title = ?, is_public = ?, sport_type = ?, difficulty_level = ?,
-           exercise_name = ?, muscle_group = ?, \`sets\` = ?, reps = ?
+           exercise_name = ?, muscle_group = ?, \`sets\` = ?, reps = ?,
+           target_distance = ?, target_duration = ?, rounds = ?
        WHERE plan_id = ?`,
       [
-        title,
-        is_public,
-        sport_type,
-        normalizedDifficultyLevel,
-        exercise_name,
-        muscle_group,
-        sets,
-        reps,
+        title, is_public, sport_type, normalizedDifficultyLevel,
+        exercise_name, muscle_group, sets, reps,
+        target_distance || null, target_duration || null, rounds || null,
         planId,
       ]
     );

@@ -133,7 +133,26 @@ async function initDb() {
     }
   });
 
-  // ── 8. POST indexes ───────────────────────────────────────────────────────
+  // ── 8. WORKOUTPLAN new columns ────────────────────────────────────────────
+  await runSafe('WORKOUTPLAN.target_distance', async () => {
+    if (!(await columnExists('WORKOUTPLAN', 'target_distance'))) {
+      await db.query('ALTER TABLE WORKOUTPLAN ADD COLUMN target_distance DECIMAL(6,2) DEFAULT NULL');
+    }
+  });
+
+  await runSafe('WORKOUTPLAN.target_duration', async () => {
+    if (!(await columnExists('WORKOUTPLAN', 'target_duration'))) {
+      await db.query('ALTER TABLE WORKOUTPLAN ADD COLUMN target_duration INT DEFAULT NULL');
+    }
+  });
+
+  await runSafe('WORKOUTPLAN.rounds', async () => {
+    if (!(await columnExists('WORKOUTPLAN', 'rounds'))) {
+      await db.query('ALTER TABLE WORKOUTPLAN ADD COLUMN rounds INT DEFAULT NULL');
+    }
+  });
+
+  // ── 9. POST indexes ───────────────────────────────────────────────────────
   await runSafe('idx_post_feed', async () => {
     if (!(await indexExists('POST', 'idx_post_feed'))) {
       await db.query('ALTER TABLE POST ADD INDEX idx_post_feed (board_id, created_at DESC)');

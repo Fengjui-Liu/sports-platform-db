@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>新增內容 | SportBoard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body data-page="compose">
@@ -65,12 +66,31 @@
                 <option value="" disabled selected hidden>請選擇要發佈的專欄</option>
               </select>
 
-              <input type="text" name="title" placeholder="計畫標題，例如：新手籃球體能訓練" required>
+              <input type="text" name="title" placeholder="計畫標題" required>
               <input type="text" name="difficulty_level" placeholder="難度，例如：初級 / 中級 / 高級" required>
-              <input type="text" name="exercise_name" placeholder="訓練項目，例如：深蹲、折返跑、投籃" required>
-              <input type="text" name="muscle_group" placeholder="訓練部位，例如：腿部、核心、全身">
-              <input type="number" name="reps" placeholder="次數 reps" min="0">
-              <input type="number" name="sets" placeholder="組數 sets" min="0">
+              <input type="text" name="exercise_name" placeholder="訓練項目" required>
+
+              <!-- strength: 肌群、組數、次數 -->
+              <div id="plan-field-strength" class="inline-form">
+                <input type="text" name="muscle_group" placeholder="訓練部位，例如：腿部、核心、全身">
+                <input type="number" name="reps" placeholder="次數 reps" min="0">
+                <input type="number" name="sets" placeholder="組數 sets" min="0">
+              </div>
+
+              <!-- cardio: 目標距離 -->
+              <div id="plan-field-distance" class="inline-form d-none">
+                <input type="number" name="target_distance" placeholder="目標距離 (km)" step="0.01" min="0">
+              </div>
+
+              <!-- cardio / cardio_no_distance / combat / sport: 目標時間 -->
+              <div id="plan-field-duration" class="inline-form d-none">
+                <input type="number" name="target_duration" placeholder="目標時間 (分鐘)" min="1">
+              </div>
+
+              <!-- combat: 回合數 -->
+              <div id="plan-field-rounds" class="inline-form d-none">
+                <input type="number" name="rounds" placeholder="回合數" min="1">
+              </div>
 
               <button type="submit" class="primary-btn">送出計畫</button>
             </form>

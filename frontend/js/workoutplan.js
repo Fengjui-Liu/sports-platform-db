@@ -50,9 +50,7 @@ function renderPlan(plan, currentUser) {
       <h3>動作詳情</h3>
       <div class="stack-list" style="margin-top:14px;">
         <div class="mini-card">
-          <strong>${escapeHtml(plan.exercise_name)}</strong>
-          <div class="meta-line">肌肉群：${escapeHtml(plan.muscle_group)}</div>
-          <div class="meta-line">組數：${plan.sets} · 次數：${plan.reps}</div>
+          ${renderPlanDetailRows(plan)}
         </div>
       </div>
     </div>
@@ -137,6 +135,55 @@ function bindWorkoutPlanActions(planId, plan, currentUser) {
   });
 }
 
+// ── 動作詳情 helper（依分類）────────────────────────────────────────────────
+
+function renderPlanDetailRows(plan) {
+  const category = getSportCategory(plan.sport_type);
+  const rows = [];
+
+  if (plan.exercise_name) {
+    rows.push(`<strong>${escapeHtml(plan.exercise_name)}</strong>`);
+  }
+
+  if (category === 'strength') {
+    if (plan.muscle_group) rows.push(`<div class="meta-line">肌群：${escapeHtml(plan.muscle_group)}</div>`);
+    rows.push(`<div class="meta-line">組數：${plan.sets || 0} · 次數：${plan.reps || 0}</div>`);
+  } else if (category === 'cardio') {
+    if (plan.target_distance) rows.push(`<div class="meta-line">目標距離：${plan.target_distance} km</div>`);
+    if (plan.target_duration) rows.push(`<div class="meta-line">目標時間：${plan.target_duration} 分鐘</div>`);
+  } else if (category === 'combat') {
+    if (plan.target_duration) rows.push(`<div class="meta-line">目標時間：${plan.target_duration} 分鐘</div>`);
+    if (plan.rounds) rows.push(`<div class="meta-line">回合數：${plan.rounds}</div>`);
+  } else {
+    // cardio_no_distance + sport
+    if (plan.target_duration) rows.push(`<div class="meta-line">目標時間：${plan.target_duration} 分鐘</div>`);
+  }
+
+  return rows.join('');
+}
+
+function buildShareCardDetails(plan) {
+  const category = getSportCategory(plan.sport_type);
+  const lines = [];
+
+  if (category === 'strength') {
+    if (plan.muscle_group) lines.push(`肌群：${plan.muscle_group}`);
+    lines.push(`${plan.sets || 0} 組 × ${plan.reps || 0} 次`);
+  } else if (category === 'cardio') {
+    if (plan.target_distance) lines.push(`目標距離：${plan.target_distance} km`);
+    if (plan.target_duration) lines.push(`目標時間：${plan.target_duration} 分鐘`);
+  } else if (category === 'combat') {
+    if (plan.target_duration) lines.push(`目標時間：${plan.target_duration} 分鐘`);
+    if (plan.rounds) lines.push(`回合數：${plan.rounds}`);
+  } else {
+    if (plan.target_duration) lines.push(`目標時間：${plan.target_duration} 分鐘`);
+  }
+
+  return lines
+    .map((l) => `<p style="margin:0 0 4px;font-size:15px;opacity:0.8;font-weight:600;">${escapeHtml(l)}</p>`)
+    .join('');
+}
+
 // ── 分享卡片截圖 ──────────────────────────────────────────────────────────────
 
 function buildShareCard(plan) {
@@ -192,7 +239,7 @@ function buildShareCard(plan) {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;">
         ${plan.sport_type ? chip(plan.sport_type) : ''}
         ${plan.difficulty_level ? chip(plan.difficulty_level) : ''}
-        ${plan.muscle_group ? chip(plan.muscle_group, 0.12) : ''}
+        ${(getSportCategory(plan.sport_type) === 'strength' && plan.muscle_group) ? chip(plan.muscle_group, 0.12) : ''}
       </div>
 
       <!-- 動作詳情 -->
@@ -201,12 +248,10 @@ function buildShareCard(plan) {
         border-radius:12px;
         padding:24px 28px;
       ">
-        <p style="margin:0 0 6px;font-size:18px;font-weight:800;">
+        <p style="margin:0 0 8px;font-size:18px;font-weight:800;">
           ${escapeHtml(plan.exercise_name || '訓練動作')}
         </p>
-        <p style="margin:0;font-size:15px;opacity:0.75;font-weight:600;">
-          ${plan.sets || 0} 組 &times; ${plan.reps || 0} 次
-        </p>
+        ${buildShareCardDetails(plan)}
       </div>
 
       <!-- 品牌 -->

@@ -226,16 +226,39 @@ function syncCreatePlanSportType(boards) {
     return;
   }
 
-  const updateSportType = () => {
+  const update = () => {
     const selectedBoard = boards.find(
       (board) => String(board.board_id) === String(planBoardSelect.value)
     );
-
-    planSportTypeInput.value = selectedBoard ? selectedBoard.sport_type : '';
+    const sportType = selectedBoard ? selectedBoard.sport_type : '';
+    planSportTypeInput.value = sportType;
+    updatePlanFormFields(sportType);
   };
 
-  planBoardSelect.addEventListener('change', updateSportType);
-  updateSportType();
+  planBoardSelect.addEventListener('change', update);
+  update();
+}
+
+// 依運動分類顯示/隱藏對應欄位
+function updatePlanFormFields(sportType) {
+  const category = getSportCategory(sportType);
+
+  const fieldMap = {
+    'plan-field-strength': ['strength'],
+    'plan-field-distance': ['cardio'],
+    'plan-field-duration': ['cardio', 'cardio_no_distance', 'combat', 'sport'],
+    'plan-field-rounds':   ['combat'],
+  };
+
+  Object.entries(fieldMap).forEach(([id, visibleCategories]) => {
+    const group = document.getElementById(id);
+    if (!group) return;
+    const visible = visibleCategories.includes(category);
+    group.classList.toggle('d-none', !visible);
+    if (!visible) {
+      group.querySelectorAll('input').forEach((input) => { input.value = ''; });
+    }
+  });
 }
 
 function findCreateBoardById(boards, boardId) {

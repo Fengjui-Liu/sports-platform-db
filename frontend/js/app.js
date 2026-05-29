@@ -9,6 +9,38 @@ const API = {
 
 const BOARD_EMOJI_MAP = {};
 
+const SPORT_ICON_MAP = {
+  '極限運動': 'bi-lightning-charge',
+  '格鬥':     'bi-shield-fill',
+  '騎車':     'bi-bicycle',
+  '游泳':     'bi-water',
+  '網球':     'bi-dribbble',
+  '足球':     'bi-dribbble',
+  '跑步':     'bi-person-walking',
+  '健身重訓': 'bi-activity',
+  '羽球':     'bi-feather',
+  '籃球':     'bi-dribbble',
+};
+
+const SPORT_CATEGORIES = {
+  '騎車': 'cardio', '游泳': 'cardio', '跑步': 'cardio',
+  '極限運動': 'cardio_no_distance',
+  '格鬥': 'combat',
+  '網球': 'sport', '足球': 'sport', '羽球': 'sport', '籃球': 'sport',
+  '健身重訓': 'strength',
+};
+
+function getSportIcon(name) {
+  const key = String(name || '').trim();
+  const cls = SPORT_ICON_MAP[key];
+  if (!cls) return '';
+  return `<i class="bi ${cls}" style="flex-shrink:0;font-size:15px;"></i>`;
+}
+
+function getSportCategory(sportType) {
+  return SPORT_CATEGORIES[String(sportType || '').trim()] || 'strength';
+}
+
 async function request(path, options = {}) {
   const config = {
     method: options.method || 'GET',
@@ -295,6 +327,7 @@ function renderBoardSidebar(boards, activeBoardId) {
           const active = String(board.board_id) === String(activeBoardId);
           return `
             <a class="board-nav-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
+              ${getSportIcon(board.sport_type)}
               <span>${escapeHtml(board.sport_type)}</span>
             </a>
           `;
@@ -335,7 +368,7 @@ function renderBoardSidebar(boards, activeBoardId) {
           ${boards
             .map((board) => {
               const active = String(board.board_id) === String(activeBoardId);
-              return `<a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">${escapeHtml(board.sport_type)}</a>`;
+              return `<a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">${getSportIcon(board.sport_type)} ${escapeHtml(board.sport_type)}</a>`;
             })
             .join('')}
         </div>
