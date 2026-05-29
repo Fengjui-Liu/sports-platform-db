@@ -12,25 +12,20 @@
 
     <main class="main-content">
       <div class="page-stack">
-        <section class="page-hero">
-          <div style="width:100%;">
-            <p class="eyebrow">Search</p>
-            <h1>搜尋</h1>
-
-            <form id="search-form" class="search-page-form" action="/search.html" method="GET">
-              <div class="search-page-input-wrap">
-                <input
-                  type="search"
-                  name="q"
-                  id="search-input"
-                  class="search-page-input"
-                  placeholder="搜尋貼文、用戶名稱、訓練計畫..."
-                  autocomplete="off"
-                >
-                <button type="submit" class="primary-btn">搜尋</button>
-              </div>
-            </form>
-          </div>
+        <section class="panel-card">
+          <form id="search-form" class="search-page-form" action="/search.html" method="GET">
+            <div class="search-page-input-wrap">
+              <input
+                type="search"
+                name="q"
+                id="search-input"
+                class="search-page-input"
+                placeholder="搜尋貼文、用戶名稱、訓練計畫..."
+                autocomplete="off"
+              >
+              <button type="submit" class="primary-btn">搜尋</button>
+            </div>
+          </form>
         </section>
 
         <div id="search-results">

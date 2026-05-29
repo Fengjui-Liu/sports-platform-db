@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>新增內容 | SportBoard</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
-
 <body data-page="compose">
   <div class="site-shell">
     <header id="site-header" class="site-header"></header>
@@ -15,28 +13,10 @@
     <main class="main-content">
       <div class="page-stack">
         <div>
-          <a class="ghost-btn" href="/" style="
-              display:inline-flex;
-              align-items:center;
-              justify-content:center;
-              padding:12px 18px;
-              border-radius:16px;
-              font-weight:800;
-              text-decoration:none;
-            ">
+          <a class="ghost-btn" href="/" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:16px;font-weight:800;text-decoration:none;">
             ← 返回首頁
           </a>
         </div>
-
-        <section class="page-hero">
-          <div>
-            <p class="eyebrow">Create</p>
-            <h1>新增內容</h1>
-            <p class="page-description">
-              在這裡新增貼文、訓練計畫或揪團活動，送出後會回到你選擇的專欄。
-            </p>
-          </div>
-        </section>
 
         <section class="panel-card">
           <div class="tab-row">
@@ -49,11 +29,7 @@
         <section id="tab-posts" class="tab-panel active">
           <article class="panel-card">
             <div class="section-head">
-              <div>
-                <h2>新增貼文</h2>
-                <p class="section-copy">選擇專欄後分享近況、心得或圖片連結</p>
-              </div>
-              <span class="helper-text">Post</span>
+              <h2>新增貼文</h2>
             </div>
 
             <form id="post-form" class="inline-form">
@@ -66,7 +42,7 @@
 
               <input type="text" name="title" placeholder="貼文標題" required>
               <textarea name="content" placeholder="分享你的訓練內容" required></textarea>
-              <input type="file" id="post-image-input" accept="image/*" style="margin-bottom: 12px;">
+              <input type="file" id="post-image-input" accept="image/*" style="margin-bottom:12px;">
               <input type="hidden" name="image_url" id="post-image-url">
               <div id="post-image-preview" class="image-preview-container"></div>
 
@@ -78,11 +54,7 @@
         <section id="tab-plans" class="tab-panel">
           <article class="panel-card">
             <div class="section-head">
-              <div>
-                <h2>新增訓練計畫</h2>
-                <p class="section-copy">選擇專欄後建立訓練菜單</p>
-              </div>
-              <span class="helper-text">Plan</span>
+              <h2>新增訓練計畫</h2>
             </div>
 
             <form id="plan-form" class="inline-form">
@@ -108,11 +80,7 @@
         <section id="tab-invitations" class="tab-panel">
           <article class="panel-card">
             <div class="section-head">
-              <div>
-                <h2>建立揪團</h2>
-                <p class="section-copy">選擇專欄後快速發起活動</p>
-              </div>
-              <span class="helper-text">Group</span>
+              <h2>建立揪團</h2>
             </div>
 
             <form id="invitation-form" class="inline-form">
@@ -123,17 +91,15 @@
               </select>
 
               <input type="text" name="title" placeholder="活動標題" required>
-              <input type="text" name="location" placeholder="地點 (可輸入名稱或釘選地圖)" required>
+              <input type="text" name="location" placeholder="地點" required>
 
-              <div class="map-picker-wrapper" style="margin-top: 12px; display: grid; gap: 12px;">
-                <button type="button" id="btn-get-geo" class="ghost-btn" style="width: 100%; justify-content: center;">
+              <div class="map-picker-wrapper" style="margin-top:12px;display:grid;gap:12px;">
+                <button type="button" id="btn-get-geo" class="ghost-btn" style="width:100%;justify-content:center;">
                   定位目前位置
                 </button>
 
-                <div id="map-container"
-                  style="width: 100%; height: 300px; border-radius: 12px; background: #eee; border: 1px solid var(--border);">
-                  <div
-                    style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted);">
+                <div id="map-container" style="width:100%;height:300px;border-radius:12px;background:#eee;border:1px solid var(--border);">
+                  <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);">
                     地圖載入中...
                   </div>
                 </div>
@@ -141,6 +107,7 @@
                 <input type="hidden" name="latitude" id="inv-lat">
                 <input type="hidden" name="longitude" id="inv-lng">
               </div>
+
               <input type="datetime-local" name="event_time" required>
               <input type="number" name="max_participants" placeholder="人數上限" min="1" required>
 
@@ -160,5 +127,4 @@
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC_0QnTnc--y2LkgZWJZ5P2Bja65L_dHLU&callback=initMap"
     async defer></script>
 </body>
-
 </html>

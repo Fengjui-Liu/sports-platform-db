@@ -8,7 +8,6 @@ async function initUserPage() {
     return;
   }
 
-  // 如果是自己，導向個人頁面
   if (currentUser && String(currentUser.user_id) === String(userId)) {
     window.location.href = `/profile.html?id=${userId}`;
     return;
@@ -24,7 +23,7 @@ async function initUserPage() {
 
     document.title = `${user.username} | SportBoard`;
     renderUserProfile(user, currentUser);
-    renderUserPosts(posts, currentUser);
+    renderUserPosts(posts);
   } catch (err) {
     el('#user-profile-card').innerHTML = createEmptyState(err.message || '找不到用戶');
   }
@@ -36,8 +35,8 @@ function renderUserProfile(user, currentUser) {
 
   const isFollowing = Number(user.is_followed_by_viewer) === 1;
   const canFollow = currentUser && String(currentUser.user_id) !== String(user.user_id);
-
   const avatarBg = getAvatarGradientByUsername(user.username);
+
   const avatar = user.profile_image
     ? `<img class="avatar" src="${escapeHtml(user.profile_image)}" alt="avatar" style="width:88px;height:88px;border-radius:50%;object-fit:cover;">`
     : `<span class="avatar-circle" style="width:88px;height:88px;font-size:32px;background:${avatarBg};">${escapeHtml(getUserInitials(user.username))}</span>`;
@@ -53,41 +52,26 @@ function renderUserProfile(user, currentUser) {
 
             ${
               canFollow
-                ? `
-                  <button
-                    id="follow-btn"
-                    class="${isFollowing ? 'ghost-btn' : 'primary-btn'}"
-                    data-following="${isFollowing}"
-                    data-user-id="${user.user_id}"
-                    style="min-width:100px;"
-                  >
+                ? `<button id="follow-btn" class="${isFollowing ? 'ghost-btn' : 'primary-btn'}" data-following="${isFollowing}" style="min-width:90px;">
                     ${isFollowing ? '已追蹤' : '追蹤'}
-                  </button>
-                `
+                   </button>`
                 : ''
             }
 
             ${
               !currentUser
-                ? `<a href="/auth.html?mode=login" class="primary-btn" style="text-decoration:none;min-width:100px;display:inline-flex;align-items:center;justify-content:center;">登入後追蹤</a>`
+                ? `<a href="/auth.html?mode=login" class="primary-btn" style="text-decoration:none;min-width:90px;display:inline-flex;align-items:center;justify-content:center;">登入後追蹤</a>`
                 : ''
             }
           </div>
 
           <p class="page-description" style="margin-top:8px;">
-            ${escapeHtml(user.bio || '這位使用者還沒有填寫自我介紹。')}
+            ${escapeHtml(user.bio || '')}
           </p>
 
           <div class="chip-row" style="margin-top:12px;">
             <span class="chip">貼文 ${user.post_count || 0}</span>
-            <button
-              id="followers-chip"
-              class="chip"
-              style="cursor:pointer;border:none;"
-              data-user-id="${user.user_id}"
-            >
-              追蹤者 <strong id="follower-count">${user.follower_count || 0}</strong>
-            </button>
+            <span class="chip">追蹤者 <strong id="follower-count">${user.follower_count || 0}</strong></span>
             <span class="chip">追蹤中 ${user.following_count || 0}</span>
           </div>
         </div>
@@ -138,7 +122,7 @@ function bindFollowButton(user, currentUser) {
   });
 }
 
-function renderUserPosts(posts, currentUser) {
+function renderUserPosts(posts) {
   const target = el('#user-posts');
   if (!target) return;
 
@@ -150,16 +134,12 @@ function renderUserPosts(posts, currentUser) {
     return;
   }
 
-  target.innerHTML = posts.map((post) => renderUserPostCard(post)).join('');
-}
-
-function renderUserPostCard(post) {
-  return `
+  target.innerHTML = posts.map((post) => `
     <a class="list-card" href="/post.html?id=${post.post_id}" style="display:block;text-decoration:none;color:inherit;">
       <div class="action-row">
         <div>
           <div class="chip-row" style="margin-bottom:8px;">
-            <span class="chip">${getBoardEmoji(post.board_name)} ${escapeHtml(post.board_name || '未分類')}</span>
+            <span class="chip">${escapeHtml(post.board_name || '未分類')}</span>
           </div>
           <h3 style="margin:0;">${escapeHtml(post.title || '未命名貼文')}</h3>
           <p class="page-description" style="-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">
@@ -169,11 +149,11 @@ function renderUserPostCard(post) {
         <div class="meta-line" style="white-space:nowrap;flex-shrink:0;">${formatDate(post.created_at)}</div>
       </div>
       <div class="chip-row" style="margin-top:8px;">
-        <span class="chip muted-chip">❤️ ${post.like_count || 0}</span>
-        <span class="chip muted-chip">💬 ${post.comment_count || 0}</span>
+        <span class="chip muted-chip">讚 ${post.like_count || 0}</span>
+        <span class="chip muted-chip">留言 ${post.comment_count || 0}</span>
       </div>
     </a>
-  `;
+  `).join('');
 }
 
 function getAvatarGradientByUsername(username) {

@@ -3,13 +3,9 @@ async function initSearchPage() {
   const q = params.get('q') || '';
 
   const searchInput = el('#search-input');
-  if (searchInput && q) {
-    searchInput.value = q;
-  }
+  if (searchInput && q) searchInput.value = q;
 
-  if (!q.trim()) {
-    return;
-  }
+  if (!q.trim()) return;
 
   const resultsEl = el('#search-results');
   resultsEl.innerHTML = `<div class="empty-state">搜尋「${escapeHtml(q)}」中...</div>`;
@@ -25,7 +21,6 @@ async function initSearchPage() {
 function renderSearchResults(data, q) {
   const resultsEl = el('#search-results');
   const { posts = [], users = [], plans = [] } = data;
-
   const totalCount = posts.length + users.length + plans.length;
 
   if (totalCount === 0) {
@@ -37,7 +32,7 @@ function renderSearchResults(data, q) {
     ${users.length > 0 ? renderUserResults(users) : ''}
     ${posts.length > 0 ? renderPostResults(posts) : ''}
     ${plans.length > 0 ? renderPlanResults(plans) : ''}
-    ${totalCount > 0 ? `<p class="meta-line" style="text-align:center;">共找到 ${totalCount} 筆結果</p>` : ''}
+    <p class="meta-line" style="text-align:center;">共找到 ${totalCount} 筆結果</p>
   `;
 }
 
@@ -45,9 +40,7 @@ function renderUserResults(users) {
   return `
     <section class="panel-card">
       <div class="section-head">
-        <div>
-          <h2>👤 用戶（${users.length}）</h2>
-        </div>
+        <h2>用戶（${users.length}）</h2>
       </div>
       <div class="stack-list">
         ${users.map((user) => `
@@ -55,7 +48,7 @@ function renderUserResults(users) {
             ${renderSearchAvatar(user.username, user.profile_image)}
             <div style="flex:1;min-width:0;">
               <strong style="color:var(--primary);">${escapeHtml(user.username)}</strong>
-              <p class="meta-line" style="margin:2px 0;">${escapeHtml(user.bio || '尚未填寫自我介紹')}</p>
+              <p class="meta-line" style="margin:2px 0;">${escapeHtml(user.bio || '')}</p>
             </div>
             <span class="chip muted-chip">追蹤者 ${user.follower_count || 0}</span>
           </a>
@@ -69,9 +62,7 @@ function renderPostResults(posts) {
   return `
     <section class="panel-card">
       <div class="section-head">
-        <div>
-          <h2>📝 貼文（${posts.length}）</h2>
-        </div>
+        <h2>貼文（${posts.length}）</h2>
       </div>
       <div class="stack-list post-feed-list">
         ${posts.map((post) => `
@@ -80,14 +71,14 @@ function renderPostResults(posts) {
             <div>
               <div class="post-card-meta">
                 <strong class="post-author">${escapeHtml(post.username)}</strong>
-                <span class="meta-dot">•</span>
-                <span class="post-board-tag">${getBoardEmoji(post.board_name)} ${escapeHtml(post.board_name || '未分類')}</span>
+                <span class="meta-dot">·</span>
+                <span class="post-board-tag">${escapeHtml(post.board_name || '未分類')}</span>
               </div>
               <h3 class="post-card-title">${escapeHtml(post.title || '未命名貼文')}</h3>
               <p class="post-card-content">${escapeHtml(post.content || '')}</p>
               <div class="post-card-actions" style="margin-top:6px;">
-                <span>❤️ ${post.like_count || 0}</span>
-                <span>💬 ${post.comment_count || 0}</span>
+                <span>讚 ${post.like_count || 0}</span>
+                <span>留言 ${post.comment_count || 0}</span>
               </div>
             </div>
           </a>
@@ -101,16 +92,14 @@ function renderPlanResults(plans) {
   return `
     <section class="panel-card">
       <div class="section-head">
-        <div>
-          <h2>🏋️ 訓練計畫（${plans.length}）</h2>
-        </div>
+        <h2>訓練計畫（${plans.length}）</h2>
       </div>
       <div class="card-grid">
         ${plans.map((plan) => `
           <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}" style="text-decoration:none;color:inherit;display:block;">
             <div class="chip-row" style="margin-bottom:8px;">
               <span class="chip">${escapeHtml(plan.difficulty_level || '未設定')}</span>
-              <span class="chip muted-chip">${getBoardEmoji(plan.sport_type)} ${escapeHtml(plan.sport_type || '未分類')}</span>
+              <span class="chip muted-chip">${escapeHtml(plan.sport_type || '未分類')}</span>
             </div>
             <h3 style="margin:0 0 4px;">${escapeHtml(plan.title)}</h3>
             <p class="page-description">${escapeHtml(plan.exercise_name || '')} · ${plan.sets || 0} sets · ${plan.reps || 0} reps</p>

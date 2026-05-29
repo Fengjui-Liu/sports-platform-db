@@ -97,7 +97,7 @@ function renderBoardHero(board, fallbackPostCount = 0, plans = [], invitations =
     <div class="action-row" style="align-items:flex-start;">
       <div>
         <p class="eyebrow">${escapeHtml(board.sport_type)}</p>
-        <h1>${getBoardEmoji(board.sport_type)} ${escapeHtml(board.sport_type)} 專欄</h1>
+        <h1>${escapeHtml(board.sport_type)} 專欄</h1>
         <p class="page-description">
           ${escapeHtml(board.description || '這裡是該運動專欄的交流空間。')}
         </p>
@@ -145,9 +145,9 @@ function renderPostCard(post, boardName) {
             <strong class="post-author">
               <a href="/user.html?id=${post.user_id}" style="color:var(--primary);text-decoration:none;">${escapeHtml(username)}</a>
             </strong>
-            <span class="meta-dot">•</span>
-            <span class="post-board-tag">${renderBoardTagText(boardName)}</span>
-            <span class="meta-dot">•</span>
+            <span class="meta-dot">·</span>
+            <span class="post-board-tag">${escapeHtml(boardName || '未分類')}</span>
+            <span class="meta-dot">·</span>
             <span class="post-time">${formatPostTime(post.created_at)}</span>
           </div>
 
@@ -162,12 +162,12 @@ function renderPostCard(post, boardName) {
             data-post-id="${post.post_id}"
             data-liked="${isLiked}"
           >
-            <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+            <span class="like-icon">${isLiked ? '♥' : '♡'}</span>
             <span class="like-count">${post.like_count || 0}</span>
           </button>
 
           <a class="meta-line" href="/post.html?id=${post.post_id}#comments" style="text-decoration:none;font-weight:700;">
-            💬 ${post.comment_count || 0}
+            留言 ${post.comment_count || 0}
           </a>
 
           <button
@@ -176,7 +176,7 @@ function renderPostCard(post, boardName) {
             data-post-id="${post.post_id}"
             data-bookmarked="${isBookmarked}"
           >
-            <span class="bookmark-icon">${isBookmarked ? '🔖' : '🏷️'}</span>
+            <span class="bookmark-icon">${isBookmarked ? '★' : '☆'}</span>
           </button>
         </div>
       </div>
@@ -220,7 +220,7 @@ async function handleLikeClick(likeBtn, currentUser) {
   likeBtn.dataset.liked = String(newLiked);
   likeBtn.classList.toggle('is-liked', newLiked);
   countEl.textContent = newCount;
-  iconEl.textContent = newLiked ? '❤️' : '🤍';
+  iconEl.textContent = newLiked ? '♥' : '♡';
 
   try {
     if (newLiked) {
@@ -232,7 +232,7 @@ async function handleLikeClick(likeBtn, currentUser) {
     likeBtn.dataset.liked = String(isLiked);
     likeBtn.classList.toggle('is-liked', isLiked);
     countEl.textContent = currentCount;
-    iconEl.textContent = isLiked ? '❤️' : '🤍';
+    iconEl.textContent = isLiked ? '♥' : '♡';
     window.alert('操作失敗：' + err.message);
   }
 }
@@ -251,7 +251,7 @@ async function handleBookmarkClick(bookmarkBtn, currentUser) {
   const newBookmarked = !isBookmarked;
   bookmarkBtn.dataset.bookmarked = String(newBookmarked);
   bookmarkBtn.classList.toggle('is-bookmarked', newBookmarked);
-  iconEl.textContent = newBookmarked ? '🔖' : '🏷️';
+  iconEl.textContent = newBookmarked ? '★' : '☆';
 
   try {
     if (newBookmarked) {
@@ -262,7 +262,7 @@ async function handleBookmarkClick(bookmarkBtn, currentUser) {
   } catch (err) {
     bookmarkBtn.dataset.bookmarked = String(isBookmarked);
     bookmarkBtn.classList.toggle('is-bookmarked', isBookmarked);
-    iconEl.textContent = isBookmarked ? '🔖' : '🏷️';
+    iconEl.textContent = isBookmarked ? '★' : '☆';
     window.alert('操作失敗：' + err.message);
   }
 }
@@ -303,9 +303,7 @@ function getAvatarGradient(username) {
 }
 
 function renderBoardTagText(boardName) {
-  const emoji = getBoardEmoji(boardName);
-  const label = escapeHtml(boardName || '未分類');
-  return emoji ? `${emoji} ${label}` : label;
+  return escapeHtml(boardName || '未分類');
 }
 
 function formatPostTime(value) {
@@ -364,10 +362,7 @@ function renderBoardPlans(boardPlans, currentUser) {
               ${plan.reps || 0} reps
             </p>
             <div class="meta-line plan-save-count" data-plan-id="${plan.plan_id}" data-author="${escapeHtml(plan.username || '未知使用者')}">
-              收藏數 ${plan.save_count || 0} · by
-              <a href="/user.html?id=${plan.user_id || ''}" style="color:var(--primary);" onclick="event.stopPropagation();">
-                ${escapeHtml(plan.username || '未知使用者')}
-              </a>
+              收藏數 ${plan.save_count || 0} · by ${escapeHtml(plan.username || '未知使用者')}
             </div>
           </a>
         </div>

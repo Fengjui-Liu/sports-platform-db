@@ -11,8 +11,6 @@ async function initHome() {
     ]);
 
     renderBoardSidebar(boards, null);
-    renderWelcomeBanner(currentUser);
-    renderHeroLinks(currentUser, boards);
     setupFeedTabs(currentUser);
     renderLatestPosts(posts, currentUser);
     setupCreateDropdown();
@@ -48,7 +46,7 @@ function setupFeedTabs(currentUser) {
         if (tab === 'following') {
           const posts = await API.get(`/posts/following?user_id=${currentUser.user_id}`);
           if (posts.length === 0) {
-            loadingEl.innerHTML = createEmptyState('你還沒有追蹤任何人，或追蹤的人還沒有發文。去探索用戶並按下追蹤吧！');
+            loadingEl.innerHTML = createEmptyState('你還沒有追蹤任何人，或追蹤的人還沒有發文。');
           } else {
             renderLatestPosts(posts, currentUser);
           }
@@ -81,54 +79,6 @@ function setupCreateDropdown() {
   }
 }
 
-function renderWelcomeBanner(currentUser) {
-  const banner = el('#welcome-banner');
-  if (!banner) return;
-
-  banner.classList.add('home-welcome-banner');
-  banner.style.background = 'linear-gradient(135deg, #123f91 0%, #2457b8 55%, #2f80ed 100%)';
-  banner.style.color = '#ffffff';
-  banner.style.border = 'none';
-  banner.style.boxShadow = '0 20px 48px rgba(18,63,145,0.24)';
-
-  banner.innerHTML = currentUser
-    ? `
-      <div>
-        <p class='eyebrow' style='color:#dbeafe;letter-spacing:0.14em;font-weight:900;'>WELCOME BACK</p>
-        <h1 style='color:#ffffff;'>歡迎回來，${escapeHtml(currentUser.username)}</h1>
-        <p class='page-description' style='color:#eaf2ff;max-width:760px;'>
-          繼續查看運動專欄、參與討論，或管理你的訓練紀錄。
-        </p>
-      </div>
-    `
-    : `
-      <div>
-        <p class='eyebrow' style='color:#dbeafe;letter-spacing:0.14em;font-weight:900;'>WELCOME</p>
-        <h1 style='color:#ffffff;'>歡迎來到 SportBoard</h1>
-        <p class='page-description' style='color:#eaf2ff;max-width:760px;'>
-          加入討論、分享訓練、找到你的運動社群。
-        </p>
-      </div>
-    `;
-}
-
-function renderHeroLinks(currentUser, boards) {
-  const firstBoard = boards[0];
-  const heroBoardLink = el('#hero-board-link');
-  const heroProfileLink = el('#hero-profile-link');
-
-  if (heroBoardLink) {
-    heroBoardLink.href = firstBoard ? `/board.html?id=${firstBoard.board_id}` : '/board.html';
-  }
-
-  if (heroProfileLink) {
-    heroProfileLink.href = currentUser
-      ? `/profile.html?id=${currentUser.user_id}`
-      : '/auth.html?mode=login';
-    heroProfileLink.textContent = currentUser ? '我的頁面' : '登入 / 註冊';
-  }
-}
-
 function renderLatestPosts(posts, currentUser) {
   const latestPosts = el('#latest-posts');
   if (!latestPosts) return;
@@ -157,9 +107,9 @@ function renderPostCard(post, boardName) {
             <strong class='post-author'>
               <a href='/user.html?id=${post.user_id}' style='color:var(--primary);text-decoration:none;'>${escapeHtml(username)}</a>
             </strong>
-            <span class='meta-dot'>•</span>
-            <span class='post-board-tag'>${renderBoardTagText(boardName)}</span>
-            <span class='meta-dot'>•</span>
+            <span class='meta-dot'>·</span>
+            <span class='post-board-tag'>${escapeHtml(boardName || '未分類')}</span>
+            <span class='meta-dot'>·</span>
             <span class='post-time'>${formatPostTime(post.created_at)}</span>
           </div>
 
@@ -167,19 +117,19 @@ function renderPostCard(post, boardName) {
           <p class='post-card-content'>${escapeHtml(post.content || '')}</p>
         </a>
 
-        <div class='post-card-actions' aria-label='貼文互動資訊'>
+        <div class='post-card-actions'>
           <button
             class='like-btn ${isLiked ? 'is-liked' : ''}'
             data-action='like'
             data-post-id='${post.post_id}'
             data-liked='${isLiked}'
           >
-            <span class='like-icon'>${isLiked ? '❤️' : '🤍'}</span>
+            <span class='like-icon'>${isLiked ? '♥' : '♡'}</span>
             <span class='like-count'>${post.like_count || 0}</span>
           </button>
 
           <a class='meta-line' href='/post.html?id=${post.post_id}#comments' style='text-decoration:none;font-weight:700;'>
-            💬 ${post.comment_count || 0}
+            留言 ${post.comment_count || 0}
           </a>
 
           <button
@@ -188,7 +138,7 @@ function renderPostCard(post, boardName) {
             data-post-id='${post.post_id}'
             data-bookmarked='${isBookmarked}'
           >
-            <span class='bookmark-icon'>${isBookmarked ? '🔖' : '🏷️'}</span>
+            <span class='bookmark-icon'>${isBookmarked ? '★' : '☆'}</span>
           </button>
         </div>
       </div>
@@ -225,14 +175,13 @@ async function handleFeedLike(likeBtn, currentUser) {
   const countEl = likeBtn.querySelector('.like-count');
   const iconEl = likeBtn.querySelector('.like-icon');
   const currentCount = parseInt(countEl.textContent) || 0;
-
   const newLiked = !isLiked;
   const newCount = newLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
 
   likeBtn.dataset.liked = String(newLiked);
   likeBtn.classList.toggle('is-liked', newLiked);
   countEl.textContent = newCount;
-  iconEl.textContent = newLiked ? '❤️' : '🤍';
+  iconEl.textContent = newLiked ? '♥' : '♡';
 
   try {
     if (newLiked) {
@@ -244,7 +193,7 @@ async function handleFeedLike(likeBtn, currentUser) {
     likeBtn.dataset.liked = String(isLiked);
     likeBtn.classList.toggle('is-liked', isLiked);
     countEl.textContent = currentCount;
-    iconEl.textContent = isLiked ? '❤️' : '🤍';
+    iconEl.textContent = isLiked ? '♥' : '♡';
     window.alert('操作失敗：' + err.message);
   }
 }
@@ -259,11 +208,11 @@ async function handleFeedBookmark(bookmarkBtn, currentUser) {
   const postId = bookmarkBtn.dataset.postId;
   const isBookmarked = bookmarkBtn.dataset.bookmarked === 'true';
   const iconEl = bookmarkBtn.querySelector('.bookmark-icon');
-
   const newBookmarked = !isBookmarked;
+
   bookmarkBtn.dataset.bookmarked = String(newBookmarked);
   bookmarkBtn.classList.toggle('is-bookmarked', newBookmarked);
-  iconEl.textContent = newBookmarked ? '🔖' : '🏷️';
+  iconEl.textContent = newBookmarked ? '★' : '☆';
 
   try {
     if (newBookmarked) {
@@ -274,7 +223,7 @@ async function handleFeedBookmark(bookmarkBtn, currentUser) {
   } catch (err) {
     bookmarkBtn.dataset.bookmarked = String(isBookmarked);
     bookmarkBtn.classList.toggle('is-bookmarked', isBookmarked);
-    iconEl.textContent = isBookmarked ? '🔖' : '🏷️';
+    iconEl.textContent = isBookmarked ? '★' : '☆';
     window.alert('操作失敗：' + err.message);
   }
 }
@@ -286,7 +235,6 @@ function renderAuthorAvatar(username, profileImage) {
   if (profileImage) {
     return `<span class='post-avatar' style='--avatar-bg:${background};'><img src='${escapeHtml(profileImage)}' alt='${escapeHtml(username)}'></span>`;
   }
-
   return `<span class='post-avatar' style='--avatar-bg:${background};'>${escapeHtml(initial)}</span>`;
 }
 
@@ -304,12 +252,6 @@ function getAvatarGradient(username) {
   ];
   const seed = String(username || 'U').charCodeAt(0) || 0;
   return gradients[seed % gradients.length];
-}
-
-function renderBoardTagText(boardName) {
-  const emoji = getBoardEmoji(boardName);
-  const label = escapeHtml(boardName || '未分類');
-  return emoji ? `${emoji} ${label}` : label;
 }
 
 function formatPostTime(value) {

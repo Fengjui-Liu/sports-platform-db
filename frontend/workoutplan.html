@@ -19,14 +19,11 @@
 
             <section class="panel-card">
               <div class="section-head">
-                <div>
-                  <h2>開始訓練</h2>
-                  <p class="section-copy">記錄本次訓練備註與時間</p>
-                </div>
+                <h2>開始訓練</h2>
               </div>
               <form id="session-form" class="inline-form">
                 <input type="hidden" name="user_id">
-                <textarea name="notes" placeholder="這次訓練備註"></textarea>
+                <textarea name="notes" placeholder="訓練備註"></textarea>
                 <input type="datetime-local" name="start_time" required>
                 <input type="datetime-local" name="end_time" required>
                 <button type="submit" class="primary-btn">送出訓練紀錄</button>
