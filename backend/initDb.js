@@ -135,10 +135,9 @@ async function initDb() {
 
   // ── 8. POST indexes ───────────────────────────────────────────────────────
   await runSafe('idx_post_feed', async () => {
-    if (await indexExists('POST', 'idx_post_feed')) {
-      await db.query('ALTER TABLE POST DROP INDEX idx_post_feed');
+    if (!(await indexExists('POST', 'idx_post_feed'))) {
+      await db.query('ALTER TABLE POST ADD INDEX idx_post_feed (board_id, created_at DESC)');
     }
-    await db.query('ALTER TABLE POST ADD INDEX idx_post_feed (board_id, created_at DESC)');
   });
 
   await runSafe('idx_postlike_post_created', async () => {
