@@ -1099,6 +1099,29 @@ strong {
   color: var(--primary);
 }
 
+/* ── Invitation Badge ── */
+.invitation-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #2d9ce0;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+/* ── Geocode status ── */
+.geocode-status {
+  font-size: 13px;
+  min-height: 18px;
+  margin-top: 4px;
+  transition: color 0.2s;
+}
+
 /* ── Header Search ── */
 .header-search-form {
   display: flex;

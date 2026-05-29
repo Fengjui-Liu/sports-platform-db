@@ -20,6 +20,7 @@ const sessionRoutes = require('./routes/sessions');
 const invitationRoutes = require('./routes/invitations');
 const uploadRoutes = require('./routes/upload');
 const searchRoutes = require('./routes/search');
+const feedRoutes = require('./routes/feed');
 
 app.use('/api/users', userRoutes);
 app.use('/api/boards', boardRoutes);
@@ -30,6 +31,7 @@ app.use('/api', sessionRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/feed', feedRoutes);
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

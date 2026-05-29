@@ -5,14 +5,14 @@ async function initHome() {
     const currentUser = getCurrentUser();
     const viewerId = currentUser?.user_id || '';
 
-    const [boards, posts] = await Promise.all([
+    const [boards, items] = await Promise.all([
       API.get('/boards'),
-      API.get(`/posts?viewer_id=${viewerId}`),
+      API.get(`/feed?viewer_id=${viewerId}`),
     ]);
 
     renderBoardSidebar(boards, null);
     setupFeedTabs(currentUser);
-    renderLatestPosts(posts, currentUser);
+    renderFeedItems(items, currentUser);
     setupCreateDropdown();
   } catch (err) {
     showMessage(el('#latest-posts'), err.message, true);
@@ -39,21 +39,21 @@ function setupFeedTabs(currentUser) {
       btn.classList.add('active');
       currentFeedTab = tab;
 
-      const loadingEl = el('#latest-posts');
-      loadingEl.innerHTML = `<div class="empty-state">載入中...</div>`;
+      const feedEl = el('#latest-posts');
+      feedEl.innerHTML = `<div class="empty-state">載入中...</div>`;
 
       try {
+        let items;
         if (tab === 'following') {
-          const posts = await API.get(`/posts/following?user_id=${currentUser.user_id}`);
-          if (posts.length === 0) {
-            loadingEl.innerHTML = createEmptyState('你還沒有追蹤任何人，或追蹤的人還沒有發文。');
-          } else {
-            renderLatestPosts(posts, currentUser);
+          items = await API.get(`/feed?following=1&user_id=${currentUser.user_id}&viewer_id=${currentUser.user_id}`);
+          if (!items.length) {
+            feedEl.innerHTML = createEmptyState('你還沒有追蹤任何人，或追蹤的人還沒有發文。');
+            return;
           }
         } else {
-          const posts = await API.get(`/posts?viewer_id=${currentUser.user_id}`);
-          renderLatestPosts(posts, currentUser);
+          items = await API.get(`/feed?viewer_id=${currentUser.user_id}`);
         }
+        renderFeedItems(items, currentUser);
       } catch (err) {
         showMessage(el('#latest-posts'), err.message, true);
       }
@@ -79,17 +79,71 @@ function setupCreateDropdown() {
   }
 }
 
-function renderLatestPosts(posts, currentUser) {
-  const latestPosts = el('#latest-posts');
-  if (!latestPosts) return;
+function renderFeedItems(items, currentUser) {
+  const feedEl = el('#latest-posts');
+  if (!feedEl) return;
 
-  latestPosts.innerHTML = posts.length
-    ? posts.map((post) => renderPostCard(post, post.board_name || '未分類')).join('')
-    : createEmptyState('目前沒有任何貼文');
+  if (!items.length) {
+    feedEl.innerHTML = createEmptyState('目前沒有任何動態');
+    return;
+  }
 
-  setupFeedInteractions(latestPosts, currentUser);
+  feedEl.innerHTML = items
+    .map((item) =>
+      item.type === 'invitation'
+        ? renderInvitationCard(item)
+        : renderPostCard(item, item.board_name || '未分類')
+    )
+    .join('');
+
+  setupFeedInteractions(feedEl, currentUser);
 }
 
+// ── 揪團卡片 ─────────────────────────────────────────────────────────────────
+function renderInvitationCard(item) {
+  const username = item.username || '未知使用者';
+  const initial = getUserInitial(username);
+  const avatarBg = getAvatarGradient(username);
+
+  const avatar = item.profile_image
+    ? `<img src="${escapeHtml(item.profile_image)}" alt="${escapeHtml(username)}">`
+    : escapeHtml(initial);
+
+  return `
+    <div class="list-card post-feed-card" data-type="invitation">
+      <a href="/user.html?id=${item.user_id}" class="post-avatar-link" style="text-decoration:none;">
+        <span class="post-avatar" style="--avatar-bg:${avatarBg};">${avatar}</span>
+      </a>
+
+      <div class="post-card-body">
+        <div class="post-card-meta">
+          <strong class="post-author">
+            <a href="/user.html?id=${item.user_id}" style="color:var(--primary);text-decoration:none;">${escapeHtml(username)}</a>
+          </strong>
+          <span class="meta-dot">·</span>
+          <span class="post-board-tag">${escapeHtml(item.board_name || '未分類')}</span>
+          <span class="meta-dot">·</span>
+          <span class="post-time">${formatPostTime(item.created_at)}</span>
+          <span class="invitation-badge">揪團</span>
+        </div>
+
+        <a href="/board.html?id=${item.board_id}&tab=invitations" style="text-decoration:none;color:inherit;display:block;">
+          <h3 class="post-card-title">${escapeHtml(item.title || '揪團活動')}</h3>
+
+          <div class="chip-row" style="margin-top:6px;">
+            ${item.location ? `<span class="chip muted-chip">${escapeHtml(item.location)}</span>` : ''}
+            ${item.event_time ? `<span class="chip muted-chip">${formatDate(item.event_time)}</span>` : ''}
+            <span class="chip muted-chip">
+              ${item.participant_count || 0} / ${item.max_participants || '?'} 人
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+// ── 貼文卡片 ─────────────────────────────────────────────────────────────────
 function renderPostCard(post, boardName) {
   const username = post.username || '未知使用者';
   const isLiked = Number(post.liked_by_viewer) === 1;
@@ -146,6 +200,7 @@ function renderPostCard(post, boardName) {
   `;
 }
 
+// ── 互動事件委派 ─────────────────────────────────────────────────────────────
 function setupFeedInteractions(container, currentUser) {
   container.addEventListener('click', async (event) => {
     const likeBtn = event.target.closest('[data-action="like"]');
@@ -228,6 +283,7 @@ async function handleFeedBookmark(bookmarkBtn, currentUser) {
   }
 }
 
+// ── 共用工具 ─────────────────────────────────────────────────────────────────
 function renderAuthorAvatar(username, profileImage) {
   const initial = getUserInitial(username);
   const background = getAvatarGradient(username);

@@ -1,9 +1,14 @@
 // === 地圖與定位邏輯開始 ===
-window.initMap = function () {
-  const defaultPos = { lat: 25.0339, lng: 121.5644 }; // 預設為台北101附近
 
-  const mapContainer = document.getElementById("map-container");
-  if (!mapContainer) return; // 如果頁面沒有地圖容器就跳過
+// 模組層級保存 map/marker 參照，供地址搜尋使用
+let _mapInstance = null;
+let _markerInstance = null;
+
+window.initMap = function () {
+  const defaultPos = { lat: 25.0339, lng: 121.5644 };
+
+  const mapContainer = document.getElementById('map-container');
+  if (!mapContainer) return;
 
   const map = new google.maps.Map(mapContainer, {
     center: defaultPos,
@@ -19,13 +24,16 @@ window.initMap = function () {
     animation: google.maps.Animation.DROP,
   });
 
-  // 監聽圖釘拖拽結束事件
-  marker.addListener("dragend", () => {
+  marker.addListener('dragend', () => {
     const pos = marker.getPosition();
     updateCoords(pos.lat(), pos.lng());
   });
 
+  _mapInstance = map;
+  _markerInstance = marker;
+
   setupGeoButton(map, marker);
+  setupAddressGeocoding(map, marker);
 };
 
 function updateCoords(lat, lng) {
@@ -35,34 +43,90 @@ function updateCoords(lat, lng) {
   if (lngInput) lngInput.value = lng;
 }
 
+function flyTo(map, marker, lat, lng) {
+  const pos = { lat: parseFloat(lat), lng: parseFloat(lng) };
+  map.panTo(pos);
+  map.setZoom(15);
+  marker.setPosition(pos);
+  updateCoords(lat, lng);
+}
+
 function setupGeoButton(map, marker) {
   const btn = document.getElementById('btn-get-geo');
   if (!btn) return;
 
   btn.addEventListener('click', () => {
     if (!navigator.geolocation) {
-      alert("您的瀏覽器不支援地理定位");
+      alert('您的瀏覽器不支援地理定位');
       return;
     }
 
-    btn.textContent = "定位中...";
+    btn.textContent = '定位中...';
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const newPos = { lat: latitude, lng: longitude };
-
-        map.setCenter(newPos);
-        marker.setPosition(newPos);
-        updateCoords(latitude, longitude);
-
-        btn.textContent = "定位目前位置";
+        flyTo(map, marker, latitude, longitude);
+        btn.textContent = '定位目前位置';
       },
       () => {
-        alert("無法取得您的精確位置，請確認瀏覽器定位權限是否開啟。");
-        btn.textContent = "定位目前位置";
+        alert('無法取得您的精確位置，請確認瀏覽器定位權限是否開啟。');
+        btn.textContent = '定位目前位置';
       }
     );
+  });
+}
+
+function setupAddressGeocoding(map, marker) {
+  const locationInput = document.querySelector('#invitation-form [name="location"]');
+  if (!locationInput) return;
+
+  // 在 input 下方插入狀態提示列
+  let statusEl = locationInput.nextElementSibling;
+  if (!statusEl || !statusEl.classList.contains('geocode-status')) {
+    statusEl = document.createElement('div');
+    statusEl.className = 'geocode-status';
+    locationInput.insertAdjacentElement('afterend', statusEl);
+  }
+
+  let debounceTimer = null;
+
+  locationInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    statusEl.textContent = '';
+    statusEl.style.color = 'var(--muted)';
+
+    const query = locationInput.value.trim();
+    if (!query) return;
+
+    debounceTimer = setTimeout(async () => {
+      statusEl.textContent = '搜尋中...';
+      statusEl.style.color = 'var(--muted)';
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=zh-TW`,
+          { headers: { 'User-Agent': 'SportBoard/1.0' } }
+        );
+
+        if (!res.ok) throw new Error('網路錯誤');
+
+        const data = await res.json();
+
+        if (!data.length) {
+          statusEl.textContent = '找不到此地址';
+          statusEl.style.color = 'var(--danger)';
+          return;
+        }
+
+        const { lat, lon } = data[0];
+        flyTo(map, marker, lat, lon);
+        statusEl.textContent = '';
+      } catch (_err) {
+        statusEl.textContent = '地址搜尋失敗，請稍後再試';
+        statusEl.style.color = 'var(--danger)';
+      }
+    }, 300);
   });
 }
 // === 地圖與定位邏輯結束 ===
