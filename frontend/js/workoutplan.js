@@ -37,6 +37,7 @@ function renderPlan(plan, currentUser) {
       </div>
       <div class="chip-row">
         <button id="save-plan-btn" class="primary-btn" type="button" ${currentUser ? '' : 'disabled'}>${saveLabel}</button>
+        <button id="share-plan-btn" class="ghost-btn" type="button">分享</button>
         ${isOwner ? '<button id="delete-plan-btn" class="ghost-btn" type="button">刪除計畫</button>' : ''}
       </div>
     </div>
@@ -108,6 +109,10 @@ function bindWorkoutPlanActions(planId, plan, currentUser) {
     }
   });
 
+  el('#share-plan-btn')?.addEventListener('click', async () => {
+    await downloadPlanImage(plan);
+  });
+
   sessionForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const user = requireCurrentUser('請先登入再建立訓練紀錄');
@@ -130,6 +135,132 @@ function bindWorkoutPlanActions(planId, plan, currentUser) {
       showMessage(status, err.message, true);
     }
   });
+}
+
+// ── 分享卡片截圖 ──────────────────────────────────────────────────────────────
+
+function buildShareCard(plan) {
+  const card = document.createElement('div');
+
+  const chip = (text, alpha = 0.18) =>
+    `<span style="
+      display:inline-flex;align-items:center;
+      background:rgba(255,255,255,${alpha});
+      border-radius:999px;padding:5px 14px;
+      font-size:13px;font-weight:700;color:#fff;
+    ">${escapeHtml(text || '')}</span>`;
+
+  card.innerHTML = `
+    <div style="
+      position:relative;
+      width:600px;
+      background:#1f4396;
+      color:#ffffff;
+      padding:52px 48px 56px;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      box-sizing:border-box;
+      border-radius:18px;
+      overflow:hidden;
+    ">
+      <!-- 裝飾圓 -->
+      <div style="
+        position:absolute;top:-80px;right:-80px;
+        width:280px;height:280px;
+        border-radius:50%;
+        background:rgba(255,255,255,0.06);
+        pointer-events:none;
+      "></div>
+      <div style="
+        position:absolute;bottom:-60px;left:-60px;
+        width:200px;height:200px;
+        border-radius:50%;
+        background:rgba(255,255,255,0.04);
+        pointer-events:none;
+      "></div>
+
+      <!-- 上方標籤 -->
+      <p style="margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:0.12em;opacity:0.6;text-transform:uppercase;">
+        訓練計畫
+      </p>
+
+      <!-- 計畫名稱 -->
+      <h1 style="margin:0 0 24px;font-size:34px;font-weight:900;line-height:1.2;letter-spacing:-0.01em;">
+        ${escapeHtml(plan.title || '訓練計畫')}
+      </h1>
+
+      <!-- 標籤列 -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;">
+        ${plan.sport_type ? chip(plan.sport_type) : ''}
+        ${plan.difficulty_level ? chip(plan.difficulty_level) : ''}
+        ${plan.muscle_group ? chip(plan.muscle_group, 0.12) : ''}
+      </div>
+
+      <!-- 動作詳情 -->
+      <div style="
+        background:rgba(255,255,255,0.1);
+        border-radius:12px;
+        padding:24px 28px;
+      ">
+        <p style="margin:0 0 6px;font-size:18px;font-weight:800;">
+          ${escapeHtml(plan.exercise_name || '訓練動作')}
+        </p>
+        <p style="margin:0;font-size:15px;opacity:0.75;font-weight:600;">
+          ${plan.sets || 0} 組 &times; ${plan.reps || 0} 次
+        </p>
+      </div>
+
+      <!-- 品牌 -->
+      <p style="
+        position:absolute;bottom:22px;right:28px;
+        margin:0;font-size:12px;font-weight:800;
+        letter-spacing:0.12em;opacity:0.45;
+        text-transform:uppercase;
+      ">SPORTBOARD</p>
+    </div>
+  `;
+
+  // 定位到畫面外但仍在 DOM 內（html2canvas 需要元素可見）
+  card.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;';
+  return card;
+}
+
+async function downloadPlanImage(plan) {
+  if (typeof html2canvas === 'undefined') {
+    window.alert('截圖功能載入中，請稍後再試。');
+    return;
+  }
+
+  const btn = el('#share-plan-btn');
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '截圖中...'; btn.disabled = true; }
+
+  const wrapper = buildShareCard(plan);
+  document.body.appendChild(wrapper);
+  const target = wrapper.firstElementChild;
+
+  try {
+    const canvas = await html2canvas(target, {
+      scale: 2,           // 高解析度
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+    });
+
+    const safeTitle = (plan.title || '訓練計畫')
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 60);
+
+    const link = document.createElement('a');
+    link.download = `sportboard_${safeTitle}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (err) {
+    window.alert('截圖失敗：' + err.message);
+  } finally {
+    wrapper.remove();
+    if (btn) { btn.textContent = originalText; btn.disabled = false; }
+  }
 }
 
 initWorkoutPlanPage();
