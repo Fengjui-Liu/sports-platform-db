@@ -72,9 +72,20 @@ router.get('/', async (req, res) => {
     return res.status(400).json({ error: '無效的 participant user id' });
   }
 
+  const boardId = req.query.board_id ? parseId(req.query.board_id) : null;
+
+  if (req.query.board_id && Number.isNaN(boardId)) {
+    return res.status(400).json({ error: '無效的 board id' });
+  }
+
   try {
     const whereParts = [];
     const params = [viewerId];
+
+    if (boardId) {
+      whereParts.push('i.board_id = ?');
+      params.push(boardId);
+    }
 
     if (ownerId) {
       whereParts.push('i.user_id = ?');
@@ -161,6 +172,40 @@ router.post('/:id/join', async (req, res) => {
     );
 
     res.json({ message: '加入揪團成功' });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  const invitationId = parseId(req.params.id);
+
+  if (Number.isNaN(invitationId)) {
+    return res.status(400).json({ error: '無效的 invitation id' });
+  }
+
+  if (!ensureRequired(res, req.body, ['user_id'])) {
+    return;
+  }
+
+  try {
+    const [[invitation]] = await db.query(
+      'SELECT user_id FROM WORKOUTINVITATION WHERE invitation_id = ?',
+      [invitationId]
+    );
+
+    if (!invitation) {
+      return res.status(404).json({ error: '找不到揪團活動' });
+    }
+
+    if (Number(invitation.user_id) !== Number(req.body.user_id)) {
+      return res.status(403).json({ error: '只有發起人可以取消揪團' });
+    }
+
+    await db.query('DELETE FROM INVITATIONPARTICIPANT WHERE invitation_id = ?', [invitationId]);
+    await db.query('DELETE FROM WORKOUTINVITATION WHERE invitation_id = ?', [invitationId]);
+
+    res.json({ message: '取消揪團成功' });
   } catch (err) {
     sendServerError(res, err);
   }

@@ -74,8 +74,8 @@
           <section class="panel-card">
             <div class="section-head">
               <div>
-                <h2>最新貼文</h2>
-                <p class="section-copy">看看大家最近分享了什麼</p>
+                <h2>貼文動態</h2>
+                <p class="section-copy">瀏覽所有貼文，或只看追蹤的人</p>
               </div>
 
               <div class="create-dropdown-container">
@@ -86,6 +86,11 @@
                   <a href="/create.html?tab=invitations">新增揪團</a>
                 </div>
               </div>
+            </div>
+
+            <div id="feed-tabs" class="feed-tabs" style="display:none;">
+              <button class="feed-tab-btn active" data-feed-tab="all">全部</button>
+              <button class="feed-tab-btn" data-feed-tab="following">追蹤中</button>
             </div>
 
             <div id="latest-posts" class="stack-list post-feed-list"></div>

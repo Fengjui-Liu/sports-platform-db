@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用戶頁面 | SportBoard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="user">
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+
+    <main class="main-content">
+      <div class="page-stack narrow">
+        <div>
+          <a class="ghost-btn" href="/" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:16px;font-weight:800;text-decoration:none;">
+            ← 返回首頁
+          </a>
+        </div>
+
+        <section id="user-profile-card" class="page-hero">
+          <div class="empty-state">載入中...</div>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-head">
+            <div>
+              <h2 id="user-posts-title">貼文</h2>
+              <p class="section-copy">此用戶發佈的貼文</p>
+            </div>
+          </div>
+          <div id="user-posts" class="stack-list post-feed-list"></div>
+        </section>
+      </div>
+    </main>
+
+    <nav id="bottom-nav" class="bottom-nav"></nav>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/user.js"></script>
+</body>
+</html>

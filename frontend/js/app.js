@@ -8,7 +8,28 @@ const API = {
 };
 
 const BOARD_EMOJI_MAP = {
-  default: '',
+  '籃球': '🏀',
+  '羽球': '🏸',
+  '健身': '🏋️',
+  '重訓': '🏋️',
+  '健身重訓': '🏋️',
+  '跑步': '🏃',
+  '足球': '⚽',
+  '網球': '🎾',
+  '游泳': '🏊',
+  '騎車': '🚴',
+  '單車': '🚴',
+  '格鬥': '🥊',
+  '拳擊': '🥊',
+  '極限運動': '⛷️',
+  '滑雪': '⛷️',
+  '排球': '🏐',
+  '棒球': '⚾',
+  '桌球': '🏓',
+  '高爾夫': '⛳',
+  '瑜伽': '🧘',
+  '武術': '🥋',
+  'default': '🏅',
 };
 
 async function request(path, options = {}) {
@@ -127,6 +148,11 @@ function fillUserIdInputs(root = document) {
 }
 
 function serializeForm(form) {
+  if (!(form instanceof HTMLFormElement)) {
+    console.error('[serializeForm] received non-HTMLFormElement:', form);
+    return {};
+  }
+
   const data = Object.fromEntries(new FormData(form).entries());
 
   Object.keys(data).forEach((key) => {
@@ -239,56 +265,54 @@ function renderTopNav() {
       </span>
     </a>
 
-    <div 
+    <form id="header-search-form" class="header-search-form" action="/search.html" method="GET">
+      <input
+        type="search"
+        name="q"
+        class="header-search-input"
+        placeholder="搜尋貼文、用戶、訓練計畫..."
+        autocomplete="off"
+      >
+      <button type="submit" class="header-search-btn" aria-label="搜尋">🔍</button>
+    </form>
+
+    <div
       class="header-actions"
       style="
         display:flex;
         align-items:center;
         justify-content:flex-end;
-        gap:18px;
+        gap:12px;
         margin-left:auto;
       "
     >
-      <span 
-        class="header-user"
-        style="
-          display:inline-flex;
-          align-items:center;
-          justify-content:center;
-          min-height:48px;
-          line-height:1;
-        "
-      >
-        ${user ? escapeHtml(user.username) : '尚未登入'}
-      </span>
-
-      <a 
-        id="header-auth-btn" 
-        class="ghost-btn" 
+      <a
+        id="header-auth-btn"
+        class="ghost-btn"
         href="${profileUrl}"
         style="
           display:inline-flex;
           align-items:center;
           justify-content:center;
-          min-height:48px;
+          min-height:44px;
           line-height:1;
           text-decoration:none;
           white-space:nowrap;
         "
       >
-        ${user ? '個人頁面' : '登入 / 註冊'}
+        ${user ? escapeHtml(user.username) : '登入 / 註冊'}
       </a>
 
-      <button 
-        id="logout-btn-top" 
-        class="primary-btn" 
-        type="button" 
+      <button
+        id="logout-btn-top"
+        class="ghost-btn"
+        type="button"
         ${user ? '' : 'hidden'}
         style="
           display:inline-flex;
           align-items:center;
           justify-content:center;
-          min-height:48px;
+          min-height:44px;
           line-height:1;
           white-space:nowrap;
         "
@@ -315,28 +339,14 @@ function renderBottomNav() {
   const page = document.body.dataset.page;
 
   const links = [
-    {
-      href: '/',
-      label: '首頁',
-      icon: '',
-      key: 'home',
-    },
-    {
-      href: '/board.html',
-      label: '專欄',
-      icon: '',
-      key: 'boards',
-    },
-    {
-      href: '/create.html',
-      label: '發文',
-      icon: '',
-      key: 'compose',
-    },
+    { href: '/', label: '首頁', icon: '🏠', key: 'home' },
+    { href: '/board.html', label: '專欄', icon: '📋', key: 'boards' },
+    { href: '/search.html', label: '搜尋', icon: '🔍', key: 'search' },
+    { href: '/create.html', label: '發文', icon: '✏️', key: 'compose' },
     {
       href: user ? `/profile.html?id=${user.user_id}` : '/auth.html?mode=login',
       label: '我的',
-      icon: '',
+      icon: '👤',
       key: 'profile',
     },
   ];
@@ -346,7 +356,8 @@ function renderBottomNav() {
       const active =
         page === link.key ||
         (page === 'post' && link.key === 'boards') ||
-        (page === 'plans' && link.key === 'boards');
+        (page === 'plans' && link.key === 'boards') ||
+        (page === 'user' && link.key === 'profile');
 
       return `
         <a class="bottom-link ${active ? 'active' : ''}" href="${link.href}">

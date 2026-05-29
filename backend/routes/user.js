@@ -51,8 +51,14 @@ router.post('/login', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const userId = parseId(req.params.id);
+  const viewerId = req.query.viewer_id ? parseId(req.query.viewer_id) : null;
+
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
+  }
+
+  if (req.query.viewer_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 viewer id' });
   }
 
   try {
@@ -69,8 +75,9 @@ router.get('/:id', async (req, res) => {
            (SELECT COUNT(*) FROM WORKOUTSESSION WHERE user_id = ?) AS session_count,
            (SELECT COUNT(*) FROM WORKOUTPLANSAVE WHERE user_id = ?) AS saved_plan_count,
            (SELECT COUNT(*) FROM USERFOLLOW WHERE followee_id = ?) AS follower_count,
-           (SELECT COUNT(*) FROM USERFOLLOW WHERE follower_id = ?) AS following_count`,
-        [userId, userId, userId, userId, userId]
+           (SELECT COUNT(*) FROM USERFOLLOW WHERE follower_id = ?) AS following_count,
+           EXISTS(SELECT 1 FROM USERFOLLOW WHERE followee_id = ? AND follower_id = ?) AS is_followed_by_viewer`,
+        [userId, userId, userId, userId, userId, userId, viewerId]
       ),
     ]);
 

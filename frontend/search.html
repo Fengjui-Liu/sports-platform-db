@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>搜尋 | SportBoard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="search">
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+
+    <main class="main-content">
+      <div class="page-stack">
+        <section class="page-hero">
+          <div style="width:100%;">
+            <p class="eyebrow">Search</p>
+            <h1>搜尋</h1>
+
+            <form id="search-form" class="search-page-form" action="/search.html" method="GET">
+              <div class="search-page-input-wrap">
+                <input
+                  type="search"
+                  name="q"
+                  id="search-input"
+                  class="search-page-input"
+                  placeholder="搜尋貼文、用戶名稱、訓練計畫..."
+                  autocomplete="off"
+                >
+                <button type="submit" class="primary-btn">搜尋</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <div id="search-results">
+          <div class="empty-state" id="search-placeholder">輸入關鍵字後開始搜尋</div>
+        </div>
+      </div>
+    </main>
+
+    <nav id="bottom-nav" class="bottom-nav"></nav>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/search.js"></script>
+</body>
+</html>

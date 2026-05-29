@@ -186,6 +186,8 @@ function bindCreateForms(currentUser, boards) {
   postForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
 
+    // event.currentTarget becomes null after the first await — capture it now
+    const form = event.currentTarget;
     const user = requireCurrentUser('請先登入再發文');
     if (!user) return;
 
@@ -219,7 +221,7 @@ function bindCreateForms(currentUser, boards) {
       }
     }
 
-    const payload = serializeForm(event.currentTarget);
+    const payload = serializeForm(form);
 
     payload.user_id = Number(user.user_id);
     payload.board_id = Number(payload.board_id);
@@ -257,6 +259,7 @@ function bindCreateForms(currentUser, boards) {
 
   planForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
 
     const user = requireCurrentUser('請先登入再新增訓練計畫');
 
@@ -264,7 +267,7 @@ function bindCreateForms(currentUser, boards) {
       return;
     }
 
-    const payload = serializeForm(event.currentTarget);
+    const payload = serializeForm(form);
     const selectedBoard = findCreateBoardById(boards, payload.board_id);
 
     if (!selectedBoard) {
@@ -295,6 +298,7 @@ function bindCreateForms(currentUser, boards) {
 
   invitationForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
 
     const user = requireCurrentUser('請先登入再建立揪團');
 
@@ -302,7 +306,7 @@ function bindCreateForms(currentUser, boards) {
       return;
     }
 
-    const payload = serializeForm(event.currentTarget);
+    const payload = serializeForm(form);
 
     payload.user_id = Number(user.user_id);
     payload.board_id = Number(payload.board_id);

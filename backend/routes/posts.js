@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    const params = [viewerId];
+    const params = [viewerId, viewerId];
     let whereClause = '';
 
     if (userId) {
@@ -30,13 +30,15 @@ router.get('/', async (req, res) => {
               u.username, u.profile_image, b.sport_type AS board_name,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count,
-              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer
+              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer,
+              MAX(CASE WHEN pb.user_id IS NULL THEN 0 ELSE 1 END) AS bookmarked_by_viewer
        FROM POST p
        JOIN USER u ON u.user_id = p.user_id
        JOIN SPORTBOARD b ON b.board_id = p.board_id
        LEFT JOIN POSTLIKE l ON l.post_id = p.post_id
        LEFT JOIN COMMENT c ON c.post_id = p.post_id
        LEFT JOIN POSTLIKE pl ON pl.post_id = p.post_id AND pl.user_id = ?
+       LEFT JOIN POSTBOOKMARK pb ON pb.post_id = p.post_id AND pb.user_id = ?
        ${whereClause}
        GROUP BY p.post_id
        ORDER BY p.created_at DESC, p.post_id DESC`,
@@ -86,6 +88,40 @@ router.post('/', async (req, res) => {
       board_id,
       title: title.trim(),
     });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.get('/following', async (req, res) => {
+  const userId = req.query.user_id ? parseId(req.query.user_id) : null;
+
+  if (!userId || Number.isNaN(userId)) {
+    return res.status(400).json({ error: '請提供有效的 user_id' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
+              u.username, u.profile_image, b.sport_type AS board_name,
+              COUNT(DISTINCT l.user_id) AS like_count,
+              COUNT(DISTINCT c.comment_id) AS comment_count,
+              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer,
+              MAX(CASE WHEN pb.user_id IS NULL THEN 0 ELSE 1 END) AS bookmarked_by_viewer
+       FROM POST p
+       JOIN USER u ON u.user_id = p.user_id
+       JOIN SPORTBOARD b ON b.board_id = p.board_id
+       JOIN USERFOLLOW f ON f.followee_id = p.user_id AND f.follower_id = ?
+       LEFT JOIN POSTLIKE l ON l.post_id = p.post_id
+       LEFT JOIN COMMENT c ON c.post_id = p.post_id
+       LEFT JOIN POSTLIKE pl ON pl.post_id = p.post_id AND pl.user_id = ?
+       LEFT JOIN POSTBOOKMARK pb ON pb.post_id = p.post_id AND pb.user_id = ?
+       GROUP BY p.post_id
+       ORDER BY p.created_at DESC, p.post_id DESC`,
+      [userId, userId, userId]
+    );
+
+    res.json(rows);
   } catch (err) {
     sendServerError(res, err);
   }
@@ -332,6 +368,64 @@ router.post('/:id/like', async (req, res) => {
     );
 
     res.json({ message: '按讚成功' });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.post('/:id/bookmark', async (req, res) => {
+  const postId = parseId(req.params.id);
+
+  if (Number.isNaN(postId)) {
+    return res.status(400).json({ error: '無效的 post id' });
+  }
+
+  if (!ensureRequired(res, req.body, ['user_id'])) {
+    return;
+  }
+
+  try {
+    await db.query(
+      `INSERT INTO POSTBOOKMARK (post_id, user_id, saved_at)
+       VALUES (?, ?, NOW())
+       ON DUPLICATE KEY UPDATE saved_at = VALUES(saved_at)`,
+      [postId, req.body.user_id]
+    );
+
+    const [[state]] = await db.query(
+      `SELECT COUNT(*) AS bookmark_count FROM POSTBOOKMARK WHERE post_id = ?`,
+      [postId]
+    );
+
+    res.json({ message: '收藏成功', bookmarked: true, bookmark_count: Number(state.bookmark_count) });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.delete('/:id/bookmark', async (req, res) => {
+  const postId = parseId(req.params.id);
+
+  if (Number.isNaN(postId)) {
+    return res.status(400).json({ error: '無效的 post id' });
+  }
+
+  if (!ensureRequired(res, req.body, ['user_id'])) {
+    return;
+  }
+
+  try {
+    await db.query(
+      'DELETE FROM POSTBOOKMARK WHERE post_id = ? AND user_id = ?',
+      [postId, req.body.user_id]
+    );
+
+    const [[state]] = await db.query(
+      `SELECT COUNT(*) AS bookmark_count FROM POSTBOOKMARK WHERE post_id = ?`,
+      [postId]
+    );
+
+    res.json({ message: '取消收藏成功', bookmarked: false, bookmark_count: Number(state.bookmark_count) });
   } catch (err) {
     sendServerError(res, err);
   }

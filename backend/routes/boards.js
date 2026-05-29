@@ -78,9 +78,14 @@ router.post('/', async (req, res) => {
 // 取得某個專欄底下的貼文
 router.get('/:id/posts', async (req, res) => {
   const boardId = parseId(req.params.id);
+  const viewerId = req.query.viewer_id ? parseId(req.query.viewer_id) : null;
 
   if (Number.isNaN(boardId)) {
     return res.status(400).json({ error: '無效的 board id' });
+  }
+
+  if (req.query.viewer_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 viewer id' });
   }
 
   try {
@@ -88,15 +93,19 @@ router.get('/:id/posts', async (req, res) => {
       `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
               u.username, u.profile_image,
               COUNT(DISTINCT l.user_id) AS like_count,
-              COUNT(DISTINCT c.comment_id) AS comment_count
+              COUNT(DISTINCT c.comment_id) AS comment_count,
+              MAX(CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END) AS liked_by_viewer,
+              MAX(CASE WHEN pb.user_id IS NULL THEN 0 ELSE 1 END) AS bookmarked_by_viewer
        FROM POST p
        JOIN USER u ON u.user_id = p.user_id
        LEFT JOIN POSTLIKE l ON l.post_id = p.post_id
        LEFT JOIN COMMENT c ON c.post_id = p.post_id
+       LEFT JOIN POSTLIKE pl ON pl.post_id = p.post_id AND pl.user_id = ?
+       LEFT JOIN POSTBOOKMARK pb ON pb.post_id = p.post_id AND pb.user_id = ?
        WHERE p.board_id = ?
        GROUP BY p.post_id
        ORDER BY p.created_at DESC, p.post_id DESC`,
-      [boardId]
+      [viewerId, viewerId, boardId]
     );
 
     res.json(rows);
