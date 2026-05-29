@@ -37,6 +37,21 @@ function getSportIcon(name) {
   return `<i class="bi ${cls}" style="flex-shrink:0;font-size:15px;"></i>`;
 }
 
+function getPostId(post) {
+  return post?.id ?? post?.post_id ?? post?.postId ?? post?.item_id ?? '';
+}
+
+function getPostDetailUrl(postOrId, hash = '') {
+  const postId = typeof postOrId === 'object' ? getPostId(postOrId) : postOrId;
+  if (!postId) return '';
+  return `/post.html?id=${encodeURIComponent(postId)}${hash}`;
+}
+
+function goToPostDetail(postOrId, hash = '') {
+  const url = getPostDetailUrl(postOrId, hash);
+  if (url) window.location.href = url;
+}
+
 function getSportCategory(sportType) {
   return SPORT_CATEGORIES[String(sportType || '').trim()] || 'strength';
 }

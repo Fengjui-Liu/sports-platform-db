@@ -145,62 +145,66 @@ function renderInvitationCard(item) {
 
 // ── 貼文卡片 ─────────────────────────────────────────────────────────────────
 function renderPostCard(post, boardName) {
-  const username = post.username || '未知使用者';
+  const postId = getPostId(post);
+  const postUrl = getPostDetailUrl(postId);
+  const commentsUrl = getPostDetailUrl(postId, '#comments');
+  const username = post.username || '\u672a\u77e5\u4f7f\u7528\u8005';
   const isLiked = Number(post.liked_by_viewer) === 1;
   const isBookmarked = Number(post.bookmarked_by_viewer) === 1;
 
   return `
-    <div class='list-card post-feed-card' data-post-id='${post.post_id}'>
-      <a href='/user.html?id=${post.user_id}' class='post-avatar-link' style='text-decoration:none;'>
+    <article class='list-card post-feed-card post-clickable-card' data-post-id='${escapeHtml(postId)}' role='link' tabindex='0'>
+      <a href='/user.html?id=${post.user_id}' class='post-avatar-link' data-card-ignore style='text-decoration:none;'>
         ${renderAuthorAvatar(username, post.profile_image)}
       </a>
 
       <div class='post-card-body'>
-        <a class='post-card-link-overlay' href='/post.html?id=${post.post_id}' style='text-decoration:none;color:inherit;display:block;'>
-          <div class='post-card-meta'>
-            <strong class='post-author'>
-              <a href='/user.html?id=${post.user_id}' style='color:var(--primary);text-decoration:none;'>${escapeHtml(username)}</a>
-            </strong>
-            <span class='meta-dot'>·</span>
-            <span class='post-board-tag'>${escapeHtml(boardName || '未分類')}</span>
-            <span class='meta-dot'>·</span>
-            <span class='post-time'>${formatPostTime(post.created_at)}</span>
-          </div>
+        <div class='post-card-meta'>
+          <strong class='post-author'>
+            <a href='/user.html?id=${post.user_id}' data-card-ignore style='color:var(--primary);text-decoration:none;'>${escapeHtml(username)}</a>
+          </strong>
+          <span class='meta-dot'>&middot;</span>
+          <span class='post-board-tag'>${escapeHtml(boardName || '\u904b\u52d5\u5c08\u6b04')}</span>
+          <span class='meta-dot'>&middot;</span>
+          <span class='post-time'>${formatPostTime(post.created_at)}</span>
+        </div>
 
-          <h3 class='post-card-title'>${escapeHtml(post.title || '未命名貼文')}</h3>
-          <p class='post-card-content'>${escapeHtml(post.content || '')}</p>
+        <a class='post-title-link' href='${postUrl}' style='text-decoration:none;color:inherit;display:block;'>
+          <h3 class='post-card-title'>${escapeHtml(post.title || '\u672a\u547d\u540d\u8cbc\u6587')}</h3>
         </a>
+        <p class='post-card-content' data-open-post>${escapeHtml(post.content || '')}</p>
 
         <div class='post-card-actions'>
           <button
             class='like-btn ${isLiked ? 'is-liked' : ''}'
             data-action='like'
-            data-post-id='${post.post_id}'
+            data-post-id='${escapeHtml(postId)}'
             data-liked='${isLiked}'
+            type='button'
           >
-            <span class='like-icon'>${isLiked ? '♥' : '♡'}</span>
+            <span class='like-icon'>${isLiked ? '&hearts;' : '&#9825;'}</span>
             <span class='like-count'>${post.like_count || 0}</span>
           </button>
 
-          <a class='meta-line' href='/post.html?id=${post.post_id}#comments' style='text-decoration:none;font-weight:700;'>
-            留言 ${post.comment_count || 0}
+          <a class='meta-line' href='${commentsUrl}' style='text-decoration:none;font-weight:700;'>
+            \u7559\u8a00 ${post.comment_count || 0}
           </a>
 
           <button
             class='bookmark-btn ${isBookmarked ? 'is-bookmarked' : ''}'
             data-action='bookmark'
-            data-post-id='${post.post_id}'
+            data-post-id='${escapeHtml(postId)}'
             data-bookmarked='${isBookmarked}'
+            type='button'
           >
-            <span class='bookmark-icon'>${isBookmarked ? '★' : '☆'}</span>
+            <span class='bookmark-icon'>${isBookmarked ? '&#9733;' : '&#9734;'}</span>
           </button>
         </div>
       </div>
-    </div>
+    </article>
   `;
 }
 
-// ── 互動事件委派 ─────────────────────────────────────────────────────────────
 function setupFeedInteractions(container, currentUser) {
   container.addEventListener('click', async (event) => {
     const likeBtn = event.target.closest('[data-action="like"]');
@@ -208,13 +212,35 @@ function setupFeedInteractions(container, currentUser) {
 
     if (likeBtn) {
       event.preventDefault();
+      event.stopPropagation();
       await handleFeedLike(likeBtn, currentUser);
+      return;
     }
 
     if (bookmarkBtn) {
       event.preventDefault();
+      event.stopPropagation();
       await handleFeedBookmark(bookmarkBtn, currentUser);
+      return;
     }
+
+    if (event.target.closest('a, button, input, textarea, select, [data-card-ignore]')) {
+      return;
+    }
+
+    const card = event.target.closest('.post-clickable-card[data-post-id]');
+    if (card && container.contains(card)) {
+      goToPostDetail(card.dataset.postId);
+    }
+  });
+
+  container.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const card = event.target.closest('.post-clickable-card[data-post-id]');
+    if (!card || !container.contains(card)) return;
+
+    event.preventDefault();
+    goToPostDetail(card.dataset.postId);
   });
 }
 
