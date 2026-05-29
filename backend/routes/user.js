@@ -7,6 +7,26 @@ const { ensureRequired, parseId, sendServerError } = require('./utils');
 
 router.use('/:id/bodyrecord', bodyRecordRoutes);
 
+function getRequestUserId(req) {
+  return parseId(
+    req.query.user_id ||
+      req.body?.user_id ||
+      req.body?.follower_id ||
+      req.get('x-user-id')
+  );
+}
+
+function normalizeUser(row) {
+  return {
+    id: row.user_id,
+    user_id: row.user_id,
+    username: row.username,
+    name: row.username,
+    email: row.email,
+    profile_image: row.profile_image,
+  };
+}
+
 // 註冊
 router.post('/register', async (req, res) => {
   if (!ensureRequired(res, req.body, ['username', 'password', 'email'])) {
@@ -44,6 +64,76 @@ router.post('/login', async (req, res) => {
     if (!isPasswordValid) return res.status(401).json({ error: '帳號或密碼錯誤' });
     delete user.password;
     res.json({ message: '登入成功', user: rows[0] });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.get('/me/follow-stats', async (req, res) => {
+  const userId = getRequestUserId(req);
+
+  if (Number.isNaN(userId)) {
+    return res.status(401).json({ error: '缺少目前使用者 id' });
+  }
+
+  try {
+    const [[stats]] = await db.query(
+      `SELECT
+         (SELECT COUNT(*) FROM USERFOLLOW WHERE follower_id = ?) AS followingCount,
+         (SELECT COUNT(*) FROM USERFOLLOW WHERE followee_id = ?) AS followersCount`,
+      [userId, userId]
+    );
+
+    res.json({
+      followingCount: Number(stats.followingCount || 0),
+      followersCount: Number(stats.followersCount || 0),
+    });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.get('/me/following', async (req, res) => {
+  const userId = getRequestUserId(req);
+
+  if (Number.isNaN(userId)) {
+    return res.status(401).json({ error: '缺少目前使用者 id' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT u.user_id, u.username, u.email, u.profile_image
+       FROM USERFOLLOW f
+       JOIN USER u ON f.followee_id = u.user_id
+       WHERE f.follower_id = ?
+       ORDER BY f.created_at DESC`,
+      [userId]
+    );
+
+    res.json({ following: rows.map(normalizeUser) });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.get('/me/followers', async (req, res) => {
+  const userId = getRequestUserId(req);
+
+  if (Number.isNaN(userId)) {
+    return res.status(401).json({ error: '缺少目前使用者 id' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT u.user_id, u.username, u.email, u.profile_image
+       FROM USERFOLLOW f
+       JOIN USER u ON f.follower_id = u.user_id
+       WHERE f.followee_id = ?
+       ORDER BY f.created_at DESC`,
+      [userId]
+    );
+
+    res.json({ followers: rows.map(normalizeUser) });
   } catch (err) {
     sendServerError(res, err);
   }

@@ -338,7 +338,7 @@ function renderBoardPlans(boardPlans, currentUser) {
         <div class="mini-card plan-card">
           <div class="action-row">
             <div class="chip-row">
-              <span class="chip">${escapeHtml(plan.difficulty_level || '未設定難度')}</span>
+              <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level) || '未設定難度')}</span>
               <span class="chip muted-chip">
                 ${escapeHtml(plan.sport_type || plan.exercise_name || '未設定項目')}
               </span>

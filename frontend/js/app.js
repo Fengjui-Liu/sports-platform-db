@@ -42,10 +42,15 @@ function getSportCategory(sportType) {
 }
 
 async function request(path, options = {}) {
+  const currentUser = getCurrentUser();
   const config = {
     method: options.method || 'GET',
     headers: { 'Content-Type': 'application/json' },
   };
+
+  if (currentUser?.user_id) {
+    config.headers['X-User-Id'] = String(currentUser.user_id);
+  }
 
   if (options.body !== undefined) {
     config.body = JSON.stringify(options.body);
@@ -195,6 +200,23 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function formatDifficultyLevel(value) {
+  const difficultyMap = {
+    easy: '初級',
+    medium: '中級',
+    hard: '高級',
+    beginner: '初級',
+    intermediate: '中級',
+    advanced: '高級',
+    '初級': '初級',
+    '中級': '中級',
+    '高級': '高級',
+  };
+
+  const key = String(value || '').trim();
+  return difficultyMap[key.toLowerCase()] || key;
 }
 
 function getUserInitials(name) {

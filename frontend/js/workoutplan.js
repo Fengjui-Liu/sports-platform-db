@@ -42,7 +42,7 @@ function renderPlan(plan, currentUser) {
       </div>
     </div>
     <div class="chip-row" style="margin-top:16px;">
-      <span class="chip">${escapeHtml(plan.difficulty_level)}</span>
+      <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level))}</span>
       <span class="chip muted-chip">${escapeHtml(plan.sport_type)}</span>
       <span class="chip muted-chip">${escapeHtml(plan.muscle_group)}</span>
     </div>
@@ -238,7 +238,7 @@ function buildShareCard(plan) {
       <!-- 標籤列 -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;">
         ${plan.sport_type ? chip(plan.sport_type) : ''}
-        ${plan.difficulty_level ? chip(plan.difficulty_level) : ''}
+        ${plan.difficulty_level ? chip(formatDifficultyLevel(plan.difficulty_level)) : ''}
         ${(getSportCategory(plan.sport_type) === 'strength' && plan.muscle_group) ? chip(plan.muscle_group, 0.12) : ''}
       </div>
 

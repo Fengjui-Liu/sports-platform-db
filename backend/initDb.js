@@ -27,6 +27,36 @@ async function runSafe(label, fn) {
 }
 
 async function initDb() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS USERFOLLOW (
+      followee_id INT NOT NULL,
+      follower_id INT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (followee_id, follower_id),
+      CONSTRAINT fk_userfollow_followee FOREIGN KEY (followee_id) REFERENCES USER(user_id) ON DELETE CASCADE,
+      CONSTRAINT fk_userfollow_follower FOREIGN KEY (follower_id) REFERENCES USER(user_id) ON DELETE CASCADE,
+      INDEX idx_userfollow_follower_created (follower_id, created_at),
+      INDEX idx_userfollow_followee_created (followee_id, created_at)
+    )
+  `);
+
+  await runSafe('USERFOLLOW not self check', async () => {
+    await db.query(
+      'ALTER TABLE USERFOLLOW ADD CONSTRAINT chk_userfollow_not_self CHECK (followee_id <> follower_id)'
+    );
+  });
+
+  await runSafe('idx_userfollow_follower_created', async () => {
+    if (!(await indexExists('USERFOLLOW', 'idx_userfollow_follower_created'))) {
+      await db.query('ALTER TABLE USERFOLLOW ADD INDEX idx_userfollow_follower_created (follower_id, created_at)');
+    }
+  });
+
+  await runSafe('idx_userfollow_followee_created', async () => {
+    if (!(await indexExists('USERFOLLOW', 'idx_userfollow_followee_created'))) {
+      await db.query('ALTER TABLE USERFOLLOW ADD INDEX idx_userfollow_followee_created (followee_id, created_at)');
+    }
+  });
   // ── 1. POSTBOOKMARK ───────────────────────────────────────────────────────
   await db.query(`
     CREATE TABLE IF NOT EXISTS POSTBOOKMARK (

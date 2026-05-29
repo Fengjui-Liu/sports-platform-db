@@ -98,7 +98,7 @@ function renderPlanResults(plans) {
         ${plans.map((plan) => `
           <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}" style="text-decoration:none;color:inherit;display:block;">
             <div class="chip-row" style="margin-bottom:8px;">
-              <span class="chip">${escapeHtml(plan.difficulty_level || '未設定')}</span>
+              <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level) || '未設定')}</span>
               <span class="chip muted-chip">${escapeHtml(plan.sport_type || '未分類')}</span>
             </div>
             <h3 style="margin:0 0 4px;">${escapeHtml(plan.title)}</h3>

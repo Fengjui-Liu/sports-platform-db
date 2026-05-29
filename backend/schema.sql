@@ -133,6 +133,7 @@ CREATE TABLE USERFOLLOW (
   follower_id INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (followee_id, follower_id),
+  CONSTRAINT chk_userfollow_not_self CHECK (followee_id <> follower_id),
   FOREIGN KEY (followee_id) REFERENCES USER(user_id) ON DELETE CASCADE,
   FOREIGN KEY (follower_id) REFERENCES USER(user_id) ON DELETE CASCADE
 );

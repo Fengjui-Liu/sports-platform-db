@@ -1,10 +1,22 @@
+async function getFollowStats(userId) {
+  return API.get(`/users/me/follow-stats?user_id=${encodeURIComponent(userId)}`);
+}
+
+async function getMyFollowing(userId) {
+  return API.get(`/users/me/following?user_id=${encodeURIComponent(userId)}`);
+}
+
+async function getMyFollowers(userId) {
+  return API.get(`/users/me/followers?user_id=${encodeURIComponent(userId)}`);
+}
+
 async function initProfilePage() {
   const params = getParams();
   const currentUser = getCurrentUser();
   const userId = params.get('id') || (currentUser && currentUser.user_id);
 
   if (!userId) {
-    el('#profile-card').innerHTML = createEmptyState('請先登入，或帶入 ?id= 參數');
+    el('#profile-card').innerHTML = createEmptyState('請先登入，或提供 ?id= 使用者 ID');
     return;
   }
 
@@ -15,6 +27,7 @@ async function initProfilePage() {
 
     const [
       user,
+      followStats,
       bodyRecords,
       posts,
       sessions,
@@ -23,7 +36,8 @@ async function initProfilePage() {
       createdInvitations,
       joinedInvitations,
     ] = await Promise.all([
-      API.get(`/users/${userId}`),
+      API.get(`/users/${userId}?viewer_id=${viewerId}`),
+      getFollowStats(userId),
       API.get(`/users/${userId}/bodyrecord`),
       API.get(`/users/${userId}/posts`),
       API.get(`/users/${userId}/sessions`),
@@ -33,10 +47,10 @@ async function initProfilePage() {
       API.get(`/invitations?participant_user_id=${userId}&user_id=${viewerId}`),
     ]);
 
-    renderProfile(user);
-    renderStats(user);
+    renderProfile(user, followStats, userId);
+    renderStats({ ...user, ...followStats });
     renderBodyRecords(bodyRecords);
-    
+
     renderSimpleList(
       '#profile-posts',
       posts,
@@ -52,12 +66,12 @@ async function initProfilePage() {
             <span class="meta-line">${formatDate(post.created_at)}</span>
           </div>
           <div class="chip-row">
-            <span class="chip muted-chip">按讚 ${post.like_count}</span>
+            <span class="chip muted-chip">讚 ${post.like_count}</span>
             <span class="chip muted-chip">留言 ${post.comment_count || 0}</span>
           </div>
         </a>
       `,
-      '目前沒有貼文'
+      '目前尚無貼文'
     );
 
     renderSimpleList(
@@ -66,10 +80,10 @@ async function initProfilePage() {
       (plan) => `
         <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}">
           <strong>${escapeHtml(plan.title)}</strong>
-          <p class="page-description">${escapeHtml(plan.exercise_name)} · ${plan.reps} reps × ${plan.sets} sets</p>
+          <p class="page-description">${escapeHtml(plan.exercise_name)} / ${plan.reps} reps / ${plan.sets} sets</p>
         </a>
       `,
-      '尚未建立計畫'
+      '目前尚未建立訓練計畫'
     );
 
     renderSimpleList(
@@ -78,10 +92,10 @@ async function initProfilePage() {
       (inv) => `
         <a class="mini-card" href="/board.html?id=${inv.board_id}">
           <strong>${escapeHtml(inv.title)}</strong>
-          <div class="meta-line">${escapeHtml(inv.location)} · ${formatDate(inv.event_time)}</div>
+          <div class="meta-line">${escapeHtml(inv.location)} / ${formatDate(inv.event_time)}</div>
         </a>
       `,
-      '尚未發起揪團'
+      '目前尚未建立揪團'
     );
 
     renderSimpleList(
@@ -90,10 +104,10 @@ async function initProfilePage() {
       (inv) => `
         <a class="mini-card" href="/board.html?id=${inv.board_id}">
           <strong>${escapeHtml(inv.title)}</strong>
-          <div class="meta-line">${escapeHtml(inv.location)} · ${formatDate(inv.event_time)}</div>
+          <div class="meta-line">${escapeHtml(inv.location)} / ${formatDate(inv.event_time)}</div>
         </a>
       `,
-      '尚未參加揪團'
+      '目前尚未參加揪團'
     );
 
     renderSimpleList(
@@ -101,27 +115,29 @@ async function initProfilePage() {
       sessions,
       (session) => `
         <div class="mini-card">
-          <strong>${escapeHtml(session.title || '未命名計畫')}</strong>
+          <strong>${escapeHtml(session.title || '未命名訓練')}</strong>
           <p class="page-description">${escapeHtml(session.notes || '無備註')}</p>
           <div class="meta-line">${formatDate(session.start_time)}</div>
         </div>
       `,
-      '目前沒有訓練紀錄'
+      '目前尚無訓練紀錄'
     );
+
     renderSimpleList(
       '#profile-saved-plans',
       savedPlans,
       (plan) => `
         <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}">
           <strong>${escapeHtml(plan.title)}</strong>
-          <p class="page-description">${escapeHtml(plan.exercise_name)} · ${plan.reps} reps × ${plan.sets} sets</p>
+          <p class="page-description">${escapeHtml(plan.exercise_name)} / ${plan.reps} reps / ${plan.sets} sets</p>
           <div class="meta-line">${escapeHtml(plan.username)}</div>
         </a>
       `,
-      '目前沒有收藏計畫'
+      '目前尚無收藏計畫'
     );
 
     bindProfileForms(userId, currentUser);
+    bindFollowStatBadges(userId);
   } catch (err) {
     const card = el('#profile-card');
     if (card) {
@@ -130,12 +146,14 @@ async function initProfilePage() {
   }
 }
 
-function renderProfile(user) {
+function renderProfile(user, followStats, userId) {
   const target = el('#profile-card');
   if (!target) {
     return;
   }
 
+  const followingCount = Number(followStats?.followingCount ?? user.following_count ?? 0);
+  const followersCount = Number(followStats?.followersCount ?? user.follower_count ?? 0);
   const avatar = user.profile_image
     ? `<img class="avatar" src="${escapeHtml(user.profile_image)}" alt="avatar">`
     : `<span class="avatar-circle" style="width:88px;height:88px;font-size:32px;">${escapeHtml(getUserInitials(user.username))}</span>`;
@@ -144,15 +162,39 @@ function renderProfile(user) {
     <div class="profile-head">
       <div class="profile-summary">
         ${avatar}
-        <div>
-          <h1>${escapeHtml(user.username)}</h1>
-          <div class="meta-line">${escapeHtml(user.email)}</div>
-          <p class="page-description">${escapeHtml(user.bio || '這位使用者還沒有填寫自我介紹。')}</p>
-          <div class="chip-row" style="margin-top:12px;">
-            <span class="chip">貼文數 ${user.post_count}</span>
-            <span class="chip">訓練次數 ${user.session_count}</span>
-            <span class="chip">收藏計畫數 ${user.saved_plan_count}</span>
+        <div class="profile-info-block">
+          <div class="profile-title-row">
+            <div>
+              <h1>${escapeHtml(user.username)}</h1>
+              <div class="meta-line">${escapeHtml(user.email)}</div>
+            </div>
+            <div class="profile-follow-stats" aria-label="追蹤統計">
+              <button class="chip follow-stat-chip" type="button" data-follow-list="following" data-user-id="${escapeHtml(userId)}">
+                追蹤中 <strong>${followingCount}</strong>
+              </button>
+              <button class="chip follow-stat-chip" type="button" data-follow-list="followers" data-user-id="${escapeHtml(userId)}">
+                粉絲 <strong>${followersCount}</strong>
+              </button>
+            </div>
           </div>
+          <p class="page-description">${escapeHtml(user.bio || '這位使用者尚未填寫自我介紹')}</p>
+          <div class="chip-row" style="margin-top:12px;">
+            <span class="chip">貼文數 ${user.post_count || 0}</span>
+            <span class="chip">訓練次數 ${user.session_count || 0}</span>
+            <span class="chip">收藏計畫數 ${user.saved_plan_count || 0}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="follow-list-modal" class="modal-backdrop" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="follow-list-title">
+        <div class="modal-head">
+          <h2 id="follow-list-title">追蹤中</h2>
+          <button id="follow-list-close-icon" class="ghost-btn modal-close-icon" type="button" aria-label="關閉">x</button>
+        </div>
+        <div id="follow-list-content" class="follow-list-content"></div>
+        <div class="modal-actions">
+          <button id="follow-list-close" class="primary-btn" type="button">關閉</button>
         </div>
       </div>
     </div>
@@ -175,15 +217,95 @@ function renderStats(user) {
   target.innerHTML = `
     <div class="stat-card">
       <div class="meta-line">貼文數</div>
-      <div class="stat-value">${user.post_count}</div>
+      <div class="stat-value">${user.post_count || 0}</div>
     </div>
     <div class="stat-card">
       <div class="meta-line">訓練次數</div>
-      <div class="stat-value">${user.session_count}</div>
+      <div class="stat-value">${user.session_count || 0}</div>
     </div>
     <div class="stat-card">
-      <div class="meta-line">收藏數</div>
-      <div class="stat-value">${user.saved_plan_count}</div>
+      <div class="meta-line">收藏計畫數</div>
+      <div class="stat-value">${user.saved_plan_count || 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="meta-line">追蹤中</div>
+      <div class="stat-value">${user.followingCount || 0}</div>
+    </div>
+    <div class="stat-card">
+      <div class="meta-line">粉絲</div>
+      <div class="stat-value">${user.followersCount || 0}</div>
+    </div>
+  `;
+}
+
+function bindFollowStatBadges(userId) {
+  document.querySelectorAll('[data-follow-list]').forEach((button) => {
+    button.addEventListener('click', () => {
+      openFollowListModal(userId, button.dataset.followList);
+    });
+  });
+
+  el('#follow-list-close')?.addEventListener('click', closeFollowListModal);
+  el('#follow-list-close-icon')?.addEventListener('click', closeFollowListModal);
+  el('#follow-list-modal')?.addEventListener('click', (event) => {
+    if (event.target.id === 'follow-list-modal') {
+      closeFollowListModal();
+    }
+  });
+}
+
+async function openFollowListModal(userId, type) {
+  const modal = el('#follow-list-modal');
+  const title = el('#follow-list-title');
+  const content = el('#follow-list-content');
+
+  if (!modal || !title || !content) {
+    return;
+  }
+
+  const isFollowing = type === 'following';
+  title.textContent = isFollowing ? '追蹤中' : '粉絲';
+  content.innerHTML = createEmptyState('載入中...');
+  modal.hidden = false;
+
+  try {
+    const data = isFollowing ? await getMyFollowing(userId) : await getMyFollowers(userId);
+    const users = isFollowing ? data.following || [] : data.followers || [];
+    renderFollowList(content, users, isFollowing ? '目前尚未追蹤任何人' : '目前尚無粉絲');
+  } catch (err) {
+    content.innerHTML = createEmptyState(err.message || '無法載入清單');
+  }
+}
+
+function closeFollowListModal() {
+  const modal = el('#follow-list-modal');
+  if (modal) {
+    modal.hidden = true;
+  }
+}
+
+function renderFollowList(target, users, emptyText) {
+  if (!users.length) {
+    target.innerHTML = createEmptyState(emptyText);
+    return;
+  }
+
+  target.innerHTML = `
+    <div class="follow-user-list">
+      ${users
+        .map((user) => {
+          const displayName = user.username || user.name || user.email || '未知使用者';
+          return `
+            <a class="follow-user-row" href="/user.html?id=${user.id || user.user_id}">
+              <span class="avatar-circle follow-user-avatar">${escapeHtml(getUserInitials(displayName))}</span>
+              <span>
+                <strong>${escapeHtml(displayName)}</strong>
+                ${user.email ? `<span class="meta-line">${escapeHtml(user.email)}</span>` : ''}
+              </span>
+            </a>
+          `;
+        })
+        .join('')}
     </div>
   `;
 }
@@ -195,7 +317,7 @@ function renderBodyRecords(records) {
   }
 
   if (!records.length) {
-    chartShell.innerHTML = createEmptyState('尚未建立身體數據');
+    chartShell.innerHTML = createEmptyState('目前尚無身體紀錄');
     return;
   }
 
@@ -214,7 +336,7 @@ function renderBodyRecords(records) {
             <div class="mini-card">
               <strong>${formatDate(record.recorded_at)}</strong>
               <div class="meta-line">
-                體重 ${record.weight} kg · 身高 ${record.height} cm · 體脂 ${record.body_fat} %
+                體重 ${record.weight} kg / 身高 ${record.height} cm / 體脂 ${record.body_fat} %
               </div>
             </div>
           `
@@ -305,11 +427,11 @@ function renderSimpleList(selector, items, renderer, emptyText) {
 function bindProfileForms(userId, currentUser) {
   const canEdit = currentUser && Number(currentUser.user_id) === Number(userId);
   if (!canEdit) {
-    disableFormWithMessage(el('#profile-form'), '請使用自己的帳號修改個人資料');
-    disableFormWithMessage(el('#bodyrecord-form'), '請使用自己的帳號新增身體數據');
+    disableFormWithMessage(el('#profile-form'), '只能編輯自己的個人資料');
+    disableFormWithMessage(el('#bodyrecord-form'), '只能新增自己的身體紀錄');
   }
 
-  el('#profile-form').addEventListener('submit', async (event) => {
+  el('#profile-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!canEdit) {
       return;
@@ -325,7 +447,7 @@ function bindProfileForms(userId, currentUser) {
     }
   });
 
-  el('#bodyrecord-form').addEventListener('submit', async (event) => {
+  el('#bodyrecord-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!canEdit) {
       return;
