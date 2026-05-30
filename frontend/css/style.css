@@ -362,15 +362,13 @@ body[data-page="profile"] .profile-container {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-@media (hover: hover) {
-  .card:hover,
-  .panel-card:hover,
-  .list-card:hover,
-  .mini-card:hover,
-  .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 18px 42px rgba(31, 67, 150, 0.14);
-  }
+.card:hover,
+.panel-card:hover,
+.list-card:hover,
+.mini-card:hover,
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 42px rgba(31, 67, 150, 0.14);
 }
 
 .page-hero,
