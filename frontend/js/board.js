@@ -109,8 +109,8 @@ function renderBoardHero(board, fallbackPostCount = 0, plans = [], invitations =
   el('#board-hero').innerHTML = `
     <div class="action-row" style="align-items:flex-start;">
       <div>
-        <p class="eyebrow" aria-label="${escapeHtml(board.sport_type)}">${boardIcon}</p>
-        <h1>${escapeHtml(board.sport_type)}</h1>
+        <p class="eyebrow" aria-label="${escapeHtml(getSportName(board.sport_type))}">${boardIcon}</p>
+        <h1>${escapeHtml(getSportName(board.sport_type))}</h1>
         <p class="page-description">
           ${escapeHtml(board.description || '\u5206\u4eab\u4ea4\u6d41\u3001\u8a13\u7df4\u5fc3\u5f97\u3001\u6bd4\u8cfd\u8a0e\u8ad6\u5c08\u6b04')}
         </p>
@@ -161,7 +161,7 @@ function renderPostCard(post, boardName) {
             <a href="/user.html?id=${post.user_id}" data-card-ignore style="color:var(--primary);text-decoration:none;">${escapeHtml(username)}</a>
           </strong>
           <span class="meta-dot">&middot;</span>
-          <span class="post-board-tag">${getSportIcon(boardName)}${escapeHtml(boardName || '\u904b\u52d5\u5c08\u6b04')}</span>
+          <span class="post-board-tag">${getSportIcon(boardName)}${escapeHtml(getSportName(boardName) || '\u904b\u52d5\u5c08\u6b04')}</span>
           <span class="meta-dot">&middot;</span>
           <span class="post-time">${formatPostTime(post.created_at)}</span>
         </div>
@@ -380,7 +380,7 @@ function renderBoardPlans(boardPlans, currentUser) {
             <div class="chip-row">
               <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level) || '未設定難度')}</span>
               <span class="chip muted-chip">
-                ${plan.sport_type ? getSportIcon(plan.sport_type) : ''}${escapeHtml(plan.sport_type || plan.exercise_name || '未設定項目')}
+                ${plan.sport_type ? getSportIcon(plan.sport_type) : ''}${escapeHtml(getSportName(plan.sport_type) || plan.exercise_name || '未設定項目')}
               </span>
             </div>
 

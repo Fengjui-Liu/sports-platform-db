@@ -29,7 +29,7 @@ function renderPlan(plan, currentUser) {
   const saveLabel = Number(plan.saved_by_viewer) ? '取消收藏' : '收藏';
 
   el('#plan-detail').innerHTML = `
-    <p class="eyebrow">${getSportIcon(plan.sport_type)}${escapeHtml(plan.sport_type)}</p>
+    <p class="eyebrow">${getSportIcon(plan.sport_type)}${escapeHtml(getSportName(plan.sport_type))}</p>
     <div class="action-row">
       <div>
         <h1>${escapeHtml(plan.title)}</h1>
@@ -43,8 +43,8 @@ function renderPlan(plan, currentUser) {
     </div>
     <div class="chip-row" style="margin-top:16px;">
       <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level))}</span>
-      <span class="chip muted-chip">${getSportIcon(plan.sport_type)}${escapeHtml(plan.sport_type)}</span>
-      <span class="chip muted-chip">${escapeHtml(plan.muscle_group)}</span>
+      <span class="chip muted-chip">${getSportIcon(plan.sport_type)}${escapeHtml(getSportName(plan.sport_type))}</span>
+      ${plan.muscle_group ? `<span class="chip muted-chip">${escapeHtml(plan.muscle_group)}</span>` : ''}
     </div>
     <div class="panel-card" style="margin-top:18px;background:var(--surface-soft);box-shadow:none;">
       <h3>動作詳情</h3>
@@ -237,7 +237,7 @@ function buildShareCard(plan) {
 
       <!-- 標籤列 -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;">
-        ${plan.sport_type ? chip(`${getBoardEmoji(plan.sport_type)} ${plan.sport_type}`) : ''}
+        ${plan.sport_type ? chip(`${plan.sport_type}`) : ''}
         ${plan.difficulty_level ? chip(formatDifficultyLevel(plan.difficulty_level)) : ''}
         ${(getSportCategory(plan.sport_type) === 'strength' && plan.muscle_group) ? chip(plan.muscle_group, 0.12) : ''}
       </div>

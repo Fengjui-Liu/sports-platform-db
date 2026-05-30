@@ -98,10 +98,19 @@ const SPORT_CATEGORIES = {
   '健身重訓': 'strength',
 };
 
+// Strips leading emoji/symbol characters from a sport_type string (e.g. "🏀 籃球" → "籃球")
+function getSportName(text) {
+  return String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+}
+
 function getSportIcon(name) {
-  const key = String(name || '').trim();
-  const icon = getBoardEmoji(key);
-  return `<span class="sport-emoji" aria-hidden="true">${escapeHtml(icon)}</span>`;
+  const text = String(name || '').trim();
+  const cleanName = getSportName(text);
+  // If text already starts with emoji, extract the first one; otherwise look up from map
+  const icon = cleanName.length < text.length
+    ? [...text.slice(0, text.length - cleanName.length).trimEnd()][0] || getBoardEmoji(cleanName)
+    : getBoardEmoji(text);
+  return icon ? `<span class="sport-emoji" aria-hidden="true">${escapeHtml(icon)}</span>` : '';
 }
 
 function getPostId(post) {
@@ -432,7 +441,7 @@ function renderBoardSidebar(boards, activeBoardId) {
           return `
             <a class="board-nav-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">
               ${getSportIcon(board.sport_type)}
-              <span>${escapeHtml(board.sport_type)}</span>
+              <span>${escapeHtml(getSportName(board.sport_type))}</span>
             </a>
           `;
         })
@@ -486,7 +495,7 @@ function renderBoardSidebar(boards, activeBoardId) {
           ${boards
             .map((board) => {
               const active = String(board.board_id) === String(activeBoardId);
-              return `<a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">${getSportIcon(board.sport_type)}${escapeHtml(board.sport_type)}</a>`;
+              return `<a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">${getSportIcon(board.sport_type)}${escapeHtml(getSportName(board.sport_type))}</a>`;
             })
             .join('')}
         </div>
@@ -601,7 +610,7 @@ function closeCreateBoardModal() {
   if (modal) modal.hidden = true;
 }
 
-function disableFormWithMessage(form, message, statusTarget) {
+function disableFormWithMessage(form, message, statusTarget, isError = false) {
   if (!form) return;
 
   form.querySelectorAll('input, textarea, button, select').forEach((field) => {
@@ -609,7 +618,7 @@ function disableFormWithMessage(form, message, statusTarget) {
   });
 
   if (statusTarget) {
-    showMessage(statusTarget, message, true);
+    showMessage(statusTarget, message, isError);
   } else if (!form.previousElementSibling?.classList?.contains('empty-state')) {
     form.insertAdjacentHTML('beforebegin', createEmptyState(message));
   }
@@ -623,5 +632,19 @@ window.addEventListener('storage', (e) => {
   if (e.key === 'sports-platform-user' || e.key === null) {
     renderTopNav();
     renderBottomNav();
+  }
+});
+
+// Global ESC key handler — closes any visible modal-backdrop
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const openModal = document.querySelector('.modal-backdrop:not([hidden])');
+  if (!openModal) return;
+  // Trigger close button if present, otherwise just hide
+  const closeBtn = openModal.querySelector('.modal-close-icon, button[id$="-close"]');
+  if (closeBtn) {
+    closeBtn.click();
+  } else {
+    openModal.hidden = true;
   }
 });

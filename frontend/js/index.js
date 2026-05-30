@@ -167,7 +167,7 @@ function renderInvitationCard(item) {
             <a href="/user.html?id=${item.user_id}" style="color:var(--primary);text-decoration:none;">${escapeHtml(username)}</a>
           </strong>
           <span class="meta-dot">·</span>
-          <span class="post-board-tag">${getSportIcon(item.board_name)}${escapeHtml(item.board_name || '未分類')}</span>
+          <span class="post-board-tag">${getSportIcon(item.board_name)}${escapeHtml(getSportName(item.board_name) || '未分類')}</span>
           <span class="meta-dot">·</span>
           <span class="post-time">${formatPostTime(item.created_at)}</span>
           <span class="invitation-badge">揪團</span>
@@ -210,7 +210,7 @@ function renderPostCard(post, boardName) {
             <a href='/user.html?id=${post.user_id}' data-card-ignore style='color:var(--primary);text-decoration:none;'>${escapeHtml(username)}</a>
           </strong>
           <span class='meta-dot'>&middot;</span>
-          <span class='post-board-tag'>${getSportIcon(boardName)}${escapeHtml(boardName || '\u904b\u52d5\u5c08\u6b04')}</span>
+          <span class='post-board-tag'>${getSportIcon(boardName)}${escapeHtml(getSportName(boardName) || '\u904b\u52d5\u5c08\u6b04')}</span>
           <span class='meta-dot'>&middot;</span>
           <span class='post-time'>${formatPostTime(post.created_at)}</span>
         </div>

@@ -209,7 +209,7 @@ function fillCreateSingleBoardSelect(selector, boards, defaultBoardId = '') {
       .map(
         (board) => `
           <option value="${board.board_id}">
-            ${getBoardEmoji(board.sport_type)} ${escapeHtml(board.sport_type)}
+            ${escapeHtml(board.sport_type)}
           </option>
         `
       )

@@ -12,7 +12,9 @@ async function getMyFollowers(userId) {
 
 let bodyRecordState = {
   records: [],
-  chartMonth: '',
+  chartRange: '3m',
+  chartRangeStart: '',
+  chartRangeEnd: '',
   historyMonth: '',
   chartPoints: [],
   userId: '',
@@ -20,6 +22,65 @@ let bodyRecordState = {
 };
 
 let profileLayoutResizeBound = false;
+
+const CHART_RANGE_PRESETS = [
+  { value: '1m', label: '近 1 個月' },
+  { value: '3m', label: '近 3 個月' },
+  { value: '6m', label: '近 6 個月' },
+  { value: '1y', label: '近 1 年' },
+  { value: 'all', label: '全部' },
+  { value: 'custom', label: '自訂' },
+];
+
+function toISODateString(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getRangeDates(range, customStart = '', customEnd = '') {
+  if (range === 'all') {
+    return { startDate: null, endDate: null };
+  }
+  if (range === 'custom') {
+    return { startDate: customStart || null, endDate: customEnd || null };
+  }
+  const today = new Date();
+  const start = new Date(today);
+  if (range === '1m') start.setMonth(start.getMonth() - 1);
+  else if (range === '3m') start.setMonth(start.getMonth() - 3);
+  else if (range === '6m') start.setMonth(start.getMonth() - 6);
+  else if (range === '1y') start.setFullYear(start.getFullYear() - 1);
+  return { startDate: toISODateString(start), endDate: toISODateString(today) };
+}
+
+function buildBodyRecordUrl(userId, range, customStart = '', customEnd = '') {
+  const { startDate, endDate } = getRangeDates(range, customStart, customEnd);
+  const params = [];
+  if (startDate) params.push(`start_date=${encodeURIComponent(startDate)}`);
+  if (endDate) params.push(`end_date=${encodeURIComponent(endDate)}`);
+  return `/users/${userId}/bodyrecord${params.length ? `?${params.join('&')}` : ''}`;
+}
+
+function drawCanvasMessage(canvas, message) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cssWidth = Math.max(canvas.clientWidth, 320);
+  const cssHeight = Math.max(canvas.clientHeight, 300);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#f8faff';
+  ctx.fillRect(0, 0, cssWidth, cssHeight);
+  ctx.fillStyle = '#6f7d97';
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(message, cssWidth / 2, cssHeight / 2);
+}
 
 async function initProfilePage() {
   const params = getParams();
@@ -49,7 +110,7 @@ async function initProfilePage() {
     ] = await Promise.all([
       API.get(`/users/${userId}?viewer_id=${viewerId}`),
       getFollowStats(userId),
-      API.get(`/users/${userId}/bodyrecord`),
+      API.get(buildBodyRecordUrl(userId, '3m')),
       API.get(`/users/${userId}/posts`),
       API.get(`/users/${userId}/sessions`),
       API.get(`/users/${userId}/saved-plans`),
@@ -73,7 +134,7 @@ async function initProfilePage() {
           <div class="action-row">
             <div>
               <div class="chip-row">
-                <span class="chip">${getSportIcon(post.board_name)}${escapeHtml(post.board_name)}</span>
+                <span class="chip">${getSportIcon(post.board_name)}${escapeHtml(getSportName(post.board_name))}</span>
               </div>
               <h3 style="margin-top:12px;">${escapeHtml(post.title || '未命名貼文')}</h3>
             </div>
@@ -592,10 +653,64 @@ function closeBodyHistoryModal() {
   }
 }
 
+async function loadAndUpdateChart(range, rangeStart, rangeEnd) {
+  if (!bodyRecordState.userId) return;
+
+  drawCanvasMessage(el('#body-chart'), '載入中...');
+  hideBodyChartTooltip();
+
+  try {
+    const url = buildBodyRecordUrl(bodyRecordState.userId, range, rangeStart, rangeEnd);
+    const records = await API.get(url);
+    const normalizedRecords = records.map(normalizeBodyRecord);
+
+    bodyRecordState.records = normalizedRecords;
+    bodyRecordState.chartRange = range;
+    bodyRecordState.chartRangeStart = rangeStart;
+    bodyRecordState.chartRangeEnd = rangeEnd;
+
+    const latestRecord = getLatestRecord(normalizedRecords);
+    const defaultMonth = latestRecord ? formatRecordMonth(latestRecord) : formatMonthKey(new Date());
+    const nextHistoryMonth = bodyRecordState.historyMonth || defaultMonth;
+    const months = getSelectableMonths(normalizedRecords, [nextHistoryMonth]);
+
+    const historySelect = el('#body-history-month-select');
+    if (historySelect) {
+      historySelect.innerHTML = renderMonthOptions(months, nextHistoryMonth);
+      bodyRecordState.historyMonth = historySelect.value || nextHistoryMonth;
+    }
+
+    drawBodyChart(buildBodyChartData(normalizedRecords));
+  } catch (err) {
+    drawCanvasMessage(el('#body-chart'), '載入失敗，請稍後再試');
+  }
+}
+
 function bindBodyRecordControls() {
-  el('#bodyrecord-month-select')?.addEventListener('change', (event) => {
-    bodyRecordState.chartMonth = event.currentTarget.value;
-    drawBodyChart(buildBodyChartData(getRecordsForMonth(bodyRecordState.records, bodyRecordState.chartMonth)));
+  document.querySelectorAll('.chart-range-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const range = btn.dataset.range;
+      const customPanel = el('#chart-range-custom');
+
+      document.querySelectorAll('.chart-range-btn').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+
+      if (range === 'custom') {
+        bodyRecordState.chartRange = 'custom';
+        if (customPanel) customPanel.hidden = false;
+        return;
+      }
+
+      if (customPanel) customPanel.hidden = true;
+      await loadAndUpdateChart(range, '', '');
+    });
+  });
+
+  el('#chart-range-apply')?.addEventListener('click', async () => {
+    const start = el('#chart-range-start')?.value || '';
+    const end = el('#chart-range-end')?.value || '';
+    await loadAndUpdateChart('custom', start, end);
   });
 
   el('#body-history-month-select')?.addEventListener('change', (event) => {
@@ -683,11 +798,19 @@ async function refreshBodyRecords(options = {}) {
     return;
   }
 
-  const records = await API.get(`/users/${bodyRecordState.userId}/bodyrecord`);
+  const url = buildBodyRecordUrl(
+    bodyRecordState.userId,
+    bodyRecordState.chartRange,
+    bodyRecordState.chartRangeStart,
+    bodyRecordState.chartRangeEnd
+  );
+  const records = await API.get(url);
   renderBodyRecords(records, {
     userId: bodyRecordState.userId,
     canEdit: bodyRecordState.canEdit,
-    chartMonth: options.chartMonth || bodyRecordState.chartMonth,
+    chartRange: bodyRecordState.chartRange,
+    chartRangeStart: bodyRecordState.chartRangeStart,
+    chartRangeEnd: bodyRecordState.chartRangeEnd,
     historyMonth: options.historyMonth || bodyRecordState.historyMonth,
   });
 
@@ -730,7 +853,6 @@ async function saveBodyRecordEdit(event) {
     const editedMonth = formatMonthKey(payload.recorded_at);
     closeBodyEditModal();
     await refreshBodyRecords({
-      chartMonth: editedMonth,
       historyMonth: editedMonth,
       keepHistoryOpen: true,
     });
@@ -771,16 +893,21 @@ function renderBodyRecords(records, options = {}) {
   const normalizedRecords = records.map(normalizeBodyRecord);
   const latestRecord = getLatestRecord(normalizedRecords);
   const defaultMonth = latestRecord ? formatRecordMonth(latestRecord) : formatMonthKey(new Date());
-  const nextChartMonth = options.chartMonth || bodyRecordState.chartMonth || defaultMonth;
   const nextHistoryMonth = options.historyMonth || bodyRecordState.historyMonth || defaultMonth;
-  const months = getSelectableMonths(normalizedRecords, [nextChartMonth, nextHistoryMonth]);
-  const chartData = buildBodyChartData(getRecordsForMonth(normalizedRecords, nextChartMonth));
+  const months = getSelectableMonths(normalizedRecords, [nextHistoryMonth]);
+  const chartData = buildBodyChartData(normalizedRecords);
   const nextUserId = options.userId || bodyRecordState.userId;
   const nextCanEdit = options.canEdit ?? bodyRecordState.canEdit;
+  const nextRange = options.chartRange !== undefined ? options.chartRange : (bodyRecordState.chartRange || '3m');
+  const nextRangeStart = options.chartRangeStart !== undefined ? options.chartRangeStart : bodyRecordState.chartRangeStart;
+  const nextRangeEnd = options.chartRangeEnd !== undefined ? options.chartRangeEnd : bodyRecordState.chartRangeEnd;
+  const todayStr = toISODateString(new Date());
 
   bodyRecordState = {
     records: normalizedRecords,
-    chartMonth: nextChartMonth,
+    chartRange: nextRange,
+    chartRangeStart: nextRangeStart,
+    chartRangeEnd: nextRangeEnd,
     historyMonth: nextHistoryMonth,
     chartPoints: [],
     userId: nextUserId,
@@ -788,11 +915,22 @@ function renderBodyRecords(records, options = {}) {
   };
 
   chartShell.innerHTML = `
-    <div class="bodyrecord-toolbar">
-      <label for="bodyrecord-month-select">查看月份：</label>
-      <select id="bodyrecord-month-select">
-        ${renderMonthOptions(months, nextChartMonth)}
-      </select>
+    <div class="bodyrecord-range-toolbar">
+      <div class="chart-range-btns" role="group" aria-label="時間範圍">
+        ${CHART_RANGE_PRESETS.map((preset) => `
+          <button
+            class="chart-range-btn${nextRange === preset.value ? ' active' : ''}"
+            type="button"
+            data-range="${escapeHtml(preset.value)}"
+          >${escapeHtml(preset.label)}</button>
+        `).join('')}
+      </div>
+      <div id="chart-range-custom" class="chart-range-custom"${nextRange !== 'custom' ? ' hidden' : ''}>
+        <input type="date" id="chart-range-start" value="${escapeHtml(nextRangeStart)}" max="${escapeHtml(todayStr)}">
+        <span class="chart-range-sep">～</span>
+        <input type="date" id="chart-range-end" value="${escapeHtml(nextRangeEnd || todayStr)}" max="${escapeHtml(todayStr)}">
+        <button id="chart-range-apply" class="chart-range-apply-btn" type="button">套用</button>
+      </div>
     </div>
     <div class="chart-shell">
       <canvas id="body-chart" class="chart-canvas"></canvas>
@@ -900,7 +1038,7 @@ function drawBodyChart(chartData) {
     ctx.font = '18px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('此月份尚無身體數據紀錄', width / 2, height / 2);
+    ctx.fillText('此區間尚無身體數據紀錄', width / 2, height / 2);
     return;
   }
 
@@ -1134,12 +1272,19 @@ function bindProfileForms(userId, currentUser) {
     try {
       const created = await API.post(`/users/${userId}/bodyrecord`, payload);
 
-      const nextRecords = await API.get(`/users/${userId}/bodyrecord`);
       const createdMonth = formatMonthKey(created.recordedAt || created.recorded_at || payload.recorded_at || new Date());
+      const nextRecords = await API.get(buildBodyRecordUrl(
+        userId,
+        bodyRecordState.chartRange,
+        bodyRecordState.chartRangeStart,
+        bodyRecordState.chartRangeEnd
+      ));
       renderBodyRecords(nextRecords, {
         userId,
         canEdit,
-        chartMonth: createdMonth || bodyRecordState.chartMonth,
+        chartRange: bodyRecordState.chartRange,
+        chartRangeStart: bodyRecordState.chartRangeStart,
+        chartRangeEnd: bodyRecordState.chartRangeEnd,
         historyMonth: bodyRecordState.historyMonth || createdMonth,
       });
       form.reset();

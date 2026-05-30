@@ -15,8 +15,13 @@
   --content-max-width: 1200px;
 }
 
-* {
+*,
+[hidden] {
   box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 html,
@@ -1004,6 +1009,94 @@ body[data-page="profile"] .profile-container {
   max-width: 220px;
 }
 
+.bodyrecord-range-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chart-range-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chart-range-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--surface-soft);
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  transition: 0.15s ease;
+  white-space: nowrap;
+}
+
+.chart-range-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.chart-range-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.chart-range-custom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.chart-range-custom[hidden] {
+  display: none;
+}
+
+.chart-range-custom input[type="date"] {
+  min-width: 128px;
+  max-width: 160px;
+}
+
+.chart-range-custom .chart-range-sep {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.chart-range-apply-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--primary);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.15s ease;
+  white-space: nowrap;
+}
+
+.chart-range-apply-btn:hover {
+  filter: brightness(0.92);
+}
+
 .bodyrecord-summary {
   display: grid;
   gap: 12px;
@@ -1326,6 +1419,11 @@ body[data-page="profile"] .profile-container {
 
   .bodyrecord-toolbar select {
     max-width: none;
+  }
+
+  .chart-range-custom input[type="date"] {
+    min-width: 110px;
+    flex: 1 1 110px;
   }
 
   .inline-form,

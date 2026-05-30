@@ -178,6 +178,7 @@ router.post('/', async (req, res) => {
 });
 
 // 查詢指定使用者的身體數據
+// 支援 query params: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD)
 router.get('/', async (req, res) => {
   const userId = parseId(req.params.id);
 
@@ -185,13 +186,35 @@ router.get('/', async (req, res) => {
     return res.status(400).json({ error: '無效的 user id' });
   }
 
+  const { start_date: startDate, end_date: endDate } = req.query;
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+  if (startDate && !datePattern.test(startDate)) {
+    return res.status(400).json({ error: '無效的 start_date 格式，請使用 YYYY-MM-DD' });
+  }
+  if (endDate && !datePattern.test(endDate)) {
+    return res.status(400).json({ error: '無效的 end_date 格式，請使用 YYYY-MM-DD' });
+  }
+
+  const conditions = ['user_id = ?'];
+  const params = [userId];
+
+  if (startDate) {
+    conditions.push('record_date >= ?');
+    params.push(startDate);
+  }
+  if (endDate) {
+    conditions.push('record_date <= ?');
+    params.push(endDate);
+  }
+
   try {
     const [rows] = await db.query(
       `SELECT record_id, user_id, weight, height, body_fat, recorded_at, record_date
        FROM BODYRECORD
-       WHERE user_id = ?
+       WHERE ${conditions.join(' AND ')}
        ORDER BY recorded_at DESC, record_id DESC`,
-      [userId]
+      params
     );
 
     res.json(rows.map(mapBodyRecord));
