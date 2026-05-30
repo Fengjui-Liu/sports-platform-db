@@ -135,12 +135,13 @@ router.get('/', async (req, res) => {
           i.location,
           i.event_time,
           i.max_participants,
-          COUNT(DISTINCT ip.user_id) AS participant_count
+          COUNT(DISTINCT CASE WHEN ip.status = 'confirmed' THEN ip.user_id END) AS participant_count
         FROM WORKOUTINVITATION i
         JOIN USER u ON u.user_id = i.user_id
         JOIN SPORTBOARD b ON b.board_id = i.board_id
         JOIN USERFOLLOW _f ON _f.followee_id = i.user_id AND _f.follower_id = ?
         LEFT JOIN INVITATIONPARTICIPANT ip ON ip.invitation_id = i.invitation_id
+        WHERE i.event_time > NOW()
         GROUP BY i.invitation_id, i.user_id, i.board_id, i.title,
                  i.created_at, u.username, u.profile_image, b.sport_type,
                  i.location, i.event_time, i.max_participants

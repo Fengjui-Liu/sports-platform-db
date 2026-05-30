@@ -137,14 +137,14 @@ sports-platform-db/
 
 這是一個專為運動愛好者打造的揪團與訓練分享社群平台。
 
-## 重要：資料庫 Schema 更新 (LBS 與候補機制)
+## 重要：資料庫 Schema 更新
 
-由於本次更新加入了「地理位置 (LBS) 搜尋空間索引」與「揪團候補」功能，資料庫結構已有重大變更。所有團隊成員在 `git pull` 最新程式碼後，**必須**先在本地端更新資料庫，才能啟動後端伺服器，否則相關 API 將會發生錯誤。
+資料庫結構以 `backend/schema.sql` 為主。所有團隊成員在 `git pull` 最新程式碼後，若需要重建本地資料庫，請使用最新版 schema。
 
 ### 更新步驟
-1. 確認專案根目錄下有 `migration_v2.sql` 這個檔案。
-2. 執行以下指令將新欄位與空間索引寫入你的本地資料庫：
-   `mysql -u root -p sports_platform < migration_v2.sql`
+1. 確認專案內有 `backend/schema.sql`。
+2. 執行以下指令重建本地資料庫：
+   `mysql -u root -p sports_platform < backend/schema.sql`
 3. 指令執行完畢若無報錯，即可正常啟動 Node.js 伺服器。
 ----
 

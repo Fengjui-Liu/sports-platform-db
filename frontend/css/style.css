@@ -1664,6 +1664,16 @@ body[data-page="profile"] .profile-container {
   white-space: nowrap;
 }
 
+.invitation-badge-ended {
+  background: #98a2b3;
+  color: #fff;
+}
+
+.invitation-badge-waitlist {
+  background: #f59e0b;
+  color: #fff;
+}
+
 /* ── Geocode status ── */
 .geocode-status {
   font-size: 13px;

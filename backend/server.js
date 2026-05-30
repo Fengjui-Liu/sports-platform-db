@@ -41,13 +41,20 @@ app.get('/', (_req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-initDb()
-  .then(() => {
+(async () => {
+  try {
+    await initDb();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error('DB initialization failed:', err.message);
+    console.error('DB config:', {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME
+    });
     process.exit(1);
-  });
+  }
+})();

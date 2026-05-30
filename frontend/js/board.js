@@ -445,6 +445,10 @@ function updatePlanSaveButton(button, result) {
 }
 
 function getInvitationActionState(item, currentUser) {
+  if (isInvitationEnded(item)) {
+    return { label: '已結束', action: 'ended', disabled: true, danger: false, hidden: true };
+  }
+
   if (!currentUser) {
     return { label: '登入後加入', action: 'login', disabled: true, danger: false };
   }
@@ -454,14 +458,35 @@ function getInvitationActionState(item, currentUser) {
   }
 
   if (Number(item.joined_by_viewer)) {
-    return { label: '退出揪團', action: 'leave', disabled: false, danger: false };
+    return {
+      label: item.viewer_status === 'waitlisted' ? '退出候補' : '退出揪團',
+      action: 'leave',
+      disabled: false,
+      danger: false,
+    };
   }
 
   if (Number(item.participant_count || 0) >= Number(item.max_participants || 0)) {
-    return { label: '名額已滿', action: 'full', disabled: true, danger: false };
+    return { label: '加入候補', action: 'join', disabled: false, danger: false };
   }
 
   return { label: '加入揪團', action: 'join', disabled: false, danger: false };
+}
+
+function isInvitationEnded(item) {
+  return item.event_time && new Date(item.event_time).getTime() <= Date.now();
+}
+
+function renderInvitationStatusBadge(item) {
+  if (isInvitationEnded(item)) {
+    return '<span class="invitation-badge invitation-badge-ended">已結束</span>';
+  }
+
+  if (Number(item.waitlist_count || 0) > 0) {
+    return `<span class="invitation-badge invitation-badge-waitlist">候補 ${item.waitlist_count}</span>`;
+  }
+
+  return '';
 }
 
 function renderParticipantList(participantUsernames) {
@@ -501,15 +526,9 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
       const dangerStyle = actionState.danger
         ? 'background:#fee2e2;color:#c53b3b;border-color:#fca5a5;'
         : '';
-
-      return `
-        <div class="list-card">
-          <div class="action-row">
-            <div>
-              <h3>${escapeHtml(item.title)}</h3>
-              <p class="page-description">${escapeHtml(item.location)}</p>
-            </div>
-
+      const actionButton = actionState.hidden
+        ? ''
+        : `
             <button
               class="action-btn invitation-action-btn"
               data-action="${actionState.action}"
@@ -520,13 +539,26 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
             >
               ${actionState.label}
             </button>
+          `;
+
+      return `
+        <div class="list-card">
+          <div class="action-row">
+            <div>
+              <h3>${escapeHtml(item.title)}</h3>
+              <p class="page-description">${escapeHtml(item.location)}</p>
+            </div>
+
+            ${actionButton}
           </div>
 
           <div class="chip-row">
             <span class="chip muted-chip">
               ${item.participant_count || 0} / 上限${item.max_participants}人
             </span>
+            ${Number(item.waitlist_count || 0) > 0 ? `<span class="chip muted-chip">候補 ${item.waitlist_count} 人</span>` : ''}
             <span class="chip muted-chip">${formatDate(item.event_time)}</span>
+            ${renderInvitationStatusBadge(item)}
           </div>
 
           <div class="meta-line">
@@ -544,7 +576,7 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
 
   document.querySelectorAll('.invitation-action-btn').forEach((button) => {
     button.addEventListener('click', async () => {
-      if (button.dataset.action === 'full') return;
+      if (button.dataset.action === 'full' || button.dataset.action === 'ended') return;
 
       const user = requireCurrentUser(
         button.dataset.action === 'join' ? '請先登入再加入揪團' : '請先登入再操作揪團'

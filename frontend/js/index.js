@@ -162,6 +162,7 @@ function renderInvitationCard(item) {
   const username = item.username || '未知使用者';
   const initial = getUserInitial(username);
   const avatarBg = getAvatarGradient(username);
+  const ended = isInvitationEnded(item);
 
   const avatar = item.profile_image
     ? `<img src="${escapeHtml(item.profile_image)}" alt="${escapeHtml(username)}">`
@@ -182,7 +183,7 @@ function renderInvitationCard(item) {
           <span class="post-board-tag">${getSportIcon(item.board_name)}${escapeHtml(getSportName(item.board_name) || '未分類')}</span>
           <span class="meta-dot">·</span>
           <span class="post-time">${formatPostTime(item.created_at)}</span>
-          <span class="invitation-badge">揪團</span>
+          <span class="invitation-badge ${ended ? 'invitation-badge-ended' : ''}">${ended ? '已結束' : '揪團'}</span>
         </div>
 
         <a href="/board.html?id=${item.board_id}&tab=invitations" style="text-decoration:none;color:inherit;display:block;">
@@ -199,6 +200,10 @@ function renderInvitationCard(item) {
       </div>
     </div>
   `;
+}
+
+function isInvitationEnded(item) {
+  return item.event_time && new Date(item.event_time).getTime() <= Date.now();
 }
 
 // ── 貼文卡片 ─────────────────────────────────────────────────────────────────

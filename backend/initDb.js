@@ -98,7 +98,7 @@ async function initDb() {
     )
   `);
 
-  // ── 2. USER columns (from migration_v2) ───────────────────────────────────
+  // ── 2. USER columns ───────────────────────────────────────────────────────
   await runSafe('USER.skill_levels', async () => {
     if (!(await columnExists('USER', 'skill_levels'))) {
       await db.query('ALTER TABLE USER ADD COLUMN skill_levels JSON DEFAULT NULL');
