@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : '';
+const API_BASE_URL = `${API_BASE}/api`;
 
 const API = {
   get: (path) => request(path),
