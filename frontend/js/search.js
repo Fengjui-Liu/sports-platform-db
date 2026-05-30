@@ -72,7 +72,7 @@ function renderPostResults(posts) {
               <div class="post-card-meta">
                 <strong class="post-author">${escapeHtml(post.username)}</strong>
                 <span class="meta-dot">·</span>
-                <span class="post-board-tag">${escapeHtml(post.board_name || '未分類')}</span>
+                <span class="post-board-tag">${getSportIcon(post.board_name)}${escapeHtml(post.board_name || '未分類')}</span>
               </div>
               <h3 class="post-card-title">${escapeHtml(post.title || '未命名貼文')}</h3>
               <p class="post-card-content">${escapeHtml(post.content || '')}</p>
@@ -99,7 +99,7 @@ function renderPlanResults(plans) {
           <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}" style="text-decoration:none;color:inherit;display:block;">
             <div class="chip-row" style="margin-bottom:8px;">
               <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level) || '未設定')}</span>
-              <span class="chip muted-chip">${escapeHtml(plan.sport_type || '未分類')}</span>
+              <span class="chip muted-chip">${getSportIcon(plan.sport_type)}${escapeHtml(plan.sport_type || '未分類')}</span>
             </div>
             <h3 style="margin:0 0 4px;">${escapeHtml(plan.title)}</h3>
             <p class="page-description">${escapeHtml(plan.exercise_name || '')} · ${plan.sets || 0} sets · ${plan.reps || 0} reps</p>

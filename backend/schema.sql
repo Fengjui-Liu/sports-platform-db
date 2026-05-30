@@ -29,12 +29,14 @@ CREATE TABLE BODYRECORD (
   height DECIMAL(5,2) NOT NULL,
   body_fat DECIMAL(5,2) NOT NULL,
   recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  record_date DATE NOT NULL,
+  UNIQUE KEY unique_user_record_date (user_id, record_date),
   FOREIGN KEY (user_id) REFERENCES USER(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE SPORTBOARD (
   board_id INT AUTO_INCREMENT PRIMARY KEY,
-  sport_type VARCHAR(50) NOT NULL,
+  sport_type VARCHAR(50) NOT NULL UNIQUE,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

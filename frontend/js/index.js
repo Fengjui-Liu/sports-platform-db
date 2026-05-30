@@ -1,4 +1,4 @@
-let currentFeedTab = 'all';
+let currentFeedMode = 'hot';
 
 async function initHome() {
   try {
@@ -7,11 +7,11 @@ async function initHome() {
 
     const [boards, items] = await Promise.all([
       API.get('/boards'),
-      API.get(`/feed?viewer_id=${viewerId}`),
+      API.get(`/feed?mode=hot&viewer_id=${viewerId}`),
     ]);
 
     renderBoardSidebar(boards, null);
-    setupFeedTabs(currentUser);
+    setupFeedModeTabs(currentUser);
     renderFeedItems(items, currentUser);
     setupCreateDropdown();
   } catch (err) {
@@ -53,6 +53,52 @@ function setupFeedTabs(currentUser) {
         } else {
           items = await API.get(`/feed?viewer_id=${currentUser.user_id}`);
         }
+        renderFeedItems(items, currentUser);
+      } catch (err) {
+        showMessage(el('#latest-posts'), err.message, true);
+      }
+    });
+  });
+}
+
+function setupFeedModeTabs(currentUser) {
+  const tabsContainer = el('#feed-tabs');
+  if (!tabsContainer) return;
+
+  tabsContainer.style.display = 'flex';
+
+  tabsContainer.querySelectorAll('.feed-tab-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const mode = btn.dataset.feedMode || btn.dataset.feedTab;
+      if (mode === currentFeedMode) return;
+
+      if (mode === 'following' && !currentUser) {
+        window.alert('\u8acb\u5148\u767b\u5165\u624d\u80fd\u67e5\u770b\u8ffd\u8e64\u4e2d\u7684\u8cbc\u6587');
+        window.location.href = '/auth.html?mode=login';
+        return;
+      }
+
+      tabsContainer.querySelectorAll('.feed-tab-btn').forEach((tabBtn) => {
+        tabBtn.classList.remove('active');
+      });
+      btn.classList.add('active');
+      currentFeedMode = mode;
+
+      const feedEl = el('#latest-posts');
+      feedEl.innerHTML = `<div class="empty-state">\u8f09\u5165\u4e2d...</div>`;
+
+      try {
+        const viewerId = currentUser?.user_id || '';
+        const query = mode === 'following'
+          ? `/feed?mode=following&user_id=${currentUser.user_id}&viewer_id=${currentUser.user_id}`
+          : `/feed?mode=${mode}&viewer_id=${viewerId}`;
+        const items = await API.get(query);
+
+        if (mode === 'following' && !items.length) {
+          feedEl.innerHTML = createEmptyState('\u4f60\u9084\u6c92\u6709\u8ffd\u8e64\u4efb\u4f55\u4eba\uff0c\u6216\u8ffd\u8e64\u7684\u4eba\u9084\u6c92\u6709\u767c\u6587\u3002');
+          return;
+        }
+
         renderFeedItems(items, currentUser);
       } catch (err) {
         showMessage(el('#latest-posts'), err.message, true);
@@ -121,7 +167,7 @@ function renderInvitationCard(item) {
             <a href="/user.html?id=${item.user_id}" style="color:var(--primary);text-decoration:none;">${escapeHtml(username)}</a>
           </strong>
           <span class="meta-dot">·</span>
-          <span class="post-board-tag">${escapeHtml(item.board_name || '未分類')}</span>
+          <span class="post-board-tag">${getSportIcon(item.board_name)}${escapeHtml(item.board_name || '未分類')}</span>
           <span class="meta-dot">·</span>
           <span class="post-time">${formatPostTime(item.created_at)}</span>
           <span class="invitation-badge">揪團</span>
@@ -164,7 +210,7 @@ function renderPostCard(post, boardName) {
             <a href='/user.html?id=${post.user_id}' data-card-ignore style='color:var(--primary);text-decoration:none;'>${escapeHtml(username)}</a>
           </strong>
           <span class='meta-dot'>&middot;</span>
-          <span class='post-board-tag'>${escapeHtml(boardName || '\u904b\u52d5\u5c08\u6b04')}</span>
+          <span class='post-board-tag'>${getSportIcon(boardName)}${escapeHtml(boardName || '\u904b\u52d5\u5c08\u6b04')}</span>
           <span class='meta-dot'>&middot;</span>
           <span class='post-time'>${formatPostTime(post.created_at)}</span>
         </div>

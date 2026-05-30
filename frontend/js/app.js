@@ -7,22 +7,90 @@ const API = {
   delete: (path, body) => request(path, { method: 'DELETE', body }),
 };
 
-const BOARD_EMOJI_MAP = {};
+const DEFAULT_SPORT_ICON = '🏅';
 
-const SPORT_ICON_MAP = {
-  '極限運動': 'bi-lightning-charge',
-  '格鬥':     'bi-shield-fill',
-  '騎車':     'bi-bicycle',
-  '游泳':     'bi-water',
-  '網球':     'bi-dribbble',
-  '足球':     'bi-dribbble',
-  '跑步':     'bi-person-walking',
-  '健身重訓': 'bi-activity',
-  '羽球':     'bi-feather',
-  '籃球':     'bi-dribbble',
-};
+const sportColumns = [
+  {
+    id: 'badminton',
+    name: '羽球',
+    icon: '🏸',
+    description: '羽球交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'basketball',
+    name: '籃球',
+    icon: '🏀',
+    description: '籃球交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'volleyball',
+    name: '排球',
+    icon: '🏐',
+    description: '排球交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'baseball',
+    name: '棒球',
+    icon: '⚾',
+    description: '棒球交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'soccer',
+    name: '足球',
+    icon: '⚽',
+    description: '足球交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'table-tennis',
+    name: '桌球',
+    icon: '🏓',
+    description: '桌球交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'tennis',
+    name: '網球',
+    icon: '🎾',
+    description: '網球交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'swimming',
+    name: '游泳',
+    icon: '🏊',
+    description: '游泳交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'running',
+    name: '跑步',
+    icon: '🏃',
+    description: '跑步交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'fitness',
+    name: '健身',
+    icon: '🏋️',
+    description: '健身交流、訓練心得、比賽討論專欄',
+  },
+  {
+    id: 'cycling',
+    name: '自行車',
+    icon: '🚴',
+    description: '自行車交流、訓練心得、比賽討論專欄',
+  },
+];
+
+const BOARD_EMOJI_MAP = sportColumns.reduce((map, sport) => {
+  map[sport.name] = sport.icon;
+  return map;
+}, {
+  健身重訓: '🏋️',
+  default: DEFAULT_SPORT_ICON,
+});
 
 const SPORT_CATEGORIES = {
+  '自行車': 'cardio', '游泳': 'cardio', '跑步': 'cardio',
+  '排球': 'sport', '棒球': 'sport', '足球': 'sport',
+  '桌球': 'sport', '網球': 'sport', '羽球': 'sport', '籃球': 'sport',
+  '健身': 'strength',
   '騎車': 'cardio', '游泳': 'cardio', '跑步': 'cardio',
   '極限運動': 'cardio_no_distance',
   '格鬥': 'combat',
@@ -32,9 +100,8 @@ const SPORT_CATEGORIES = {
 
 function getSportIcon(name) {
   const key = String(name || '').trim();
-  const cls = SPORT_ICON_MAP[key];
-  if (!cls) return '';
-  return `<i class="bi ${cls}" style="flex-shrink:0;font-size:15px;"></i>`;
+  const icon = getBoardEmoji(key);
+  return `<span class="sport-emoji" aria-hidden="true">${escapeHtml(icon)}</span>`;
 }
 
 function getPostId(post) {
@@ -249,7 +316,7 @@ function getBoardEmoji(name) {
   const matchedKey = Object.keys(BOARD_EMOJI_MAP).find(
     (key) => key !== 'default' && boardName.includes(key)
   );
-  return matchedKey ? BOARD_EMOJI_MAP[matchedKey] : '';
+  return matchedKey ? BOARD_EMOJI_MAP[matchedKey] : BOARD_EMOJI_MAP.default;
 }
 
 function truncateText(value, limit = 120) {
@@ -382,11 +449,25 @@ function renderBoardSidebar(boards, activeBoardId) {
               </button>`
             : ''
         }
-        <div class="sidebar-title">運動專欄</div>
+        <div class="sidebar-title-row">
+          <div class="sidebar-title">運動專欄</div>
+          <button
+            id="sidebar-add-board-btn"
+            class="sidebar-add-board-btn"
+            type="button"
+            aria-label="新增運動專欄"
+            title="新增運動專欄"
+          >
+            +
+          </button>
+        </div>
         <div class="board-nav">${links}</div>
       </div>
     `;
     el('#sidebar-home-btn')?.addEventListener('click', goHome);
+    el('#sidebar-add-board-btn')?.addEventListener('click', () => {
+      openCreateBoardModal(boards, activeBoardId);
+    });
   }
 
   if (mobileBar) {
@@ -405,7 +486,7 @@ function renderBoardSidebar(boards, activeBoardId) {
           ${boards
             .map((board) => {
               const active = String(board.board_id) === String(activeBoardId);
-              return `<a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">${getSportIcon(board.sport_type)} ${escapeHtml(board.sport_type)}</a>`;
+              return `<a class="mobile-board-link ${active ? 'active' : ''}" href="/board.html?id=${board.board_id}">${getSportIcon(board.sport_type)}${escapeHtml(board.sport_type)}</a>`;
             })
             .join('')}
         </div>
@@ -413,6 +494,111 @@ function renderBoardSidebar(boards, activeBoardId) {
       : '';
     el('#mobile-board-home-btn')?.addEventListener('click', goHome);
   }
+}
+
+function getDefaultBoardDescription(name) {
+  return `${String(name || '').trim()}交流、訓練心得、比賽討論專欄`;
+}
+
+function ensureCreateBoardModal() {
+  let modal = el('#create-board-modal');
+  if (modal) return modal;
+
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    `
+      <div id="create-board-modal" class="modal-backdrop" hidden>
+        <form id="create-board-form" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="create-board-title">
+          <div class="modal-head">
+            <h2 id="create-board-title">新增運動專欄</h2>
+            <button id="create-board-close" class="ghost-btn modal-close-icon" type="button" aria-label="關閉">x</button>
+          </div>
+
+          <label class="form-field">
+            <span>專欄名稱</span>
+            <input id="create-board-name" name="name" type="text" maxlength="50" placeholder="例如：排球" required>
+          </label>
+
+          <label class="form-field">
+            <span>專欄描述</span>
+            <textarea id="create-board-description" name="description" maxlength="255" placeholder="例如：排球交流、訓練心得、比賽討論專欄"></textarea>
+          </label>
+
+          <div id="create-board-status" class="form-status" aria-live="polite"></div>
+
+          <div class="modal-actions">
+            <button id="create-board-cancel" class="gray-btn" type="button">取消</button>
+            <button class="primary-btn" type="submit">建立專欄</button>
+          </div>
+        </form>
+      </div>
+    `
+  );
+
+  modal = el('#create-board-modal');
+  el('#create-board-close')?.addEventListener('click', closeCreateBoardModal);
+  el('#create-board-cancel')?.addEventListener('click', closeCreateBoardModal);
+  modal?.addEventListener('click', (event) => {
+    if (event.target === modal) closeCreateBoardModal();
+  });
+
+  return modal;
+}
+
+function openCreateBoardModal(boards = [], activeBoardId = null) {
+  const modal = ensureCreateBoardModal();
+  const form = el('#create-board-form');
+  const nameInput = el('#create-board-name');
+  const descriptionInput = el('#create-board-description');
+  const status = el('#create-board-status');
+
+  if (!modal || !form || !nameInput || !descriptionInput || !status) return;
+
+  form.reset();
+  showMessage(status, '');
+  modal.hidden = false;
+  nameInput.focus();
+
+  form.onsubmit = async (event) => {
+    event.preventDefault();
+
+    const name = nameInput.value.trim();
+    const description = descriptionInput.value.trim() || getDefaultBoardDescription(name);
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    showMessage(status, '');
+
+    if (!name) {
+      showMessage(status, '請輸入專欄名稱', true);
+      nameInput.focus();
+      return;
+    }
+
+    const duplicated = boards.some((board) => normalizeBoardName(board.sport_type) === normalizeBoardName(name));
+    if (duplicated) {
+      showMessage(status, '此專欄已存在', true);
+      nameInput.focus();
+      return;
+    }
+
+    submitButton.disabled = true;
+
+    try {
+      await API.post('/boards', { name, description });
+      const updatedBoards = await API.get('/boards');
+      renderBoardSidebar(updatedBoards, activeBoardId);
+      closeCreateBoardModal();
+    } catch (err) {
+      showMessage(status, err.message || '新增專欄失敗', true);
+    } finally {
+      submitButton.disabled = false;
+    }
+  };
+}
+
+function closeCreateBoardModal() {
+  const modal = el('#create-board-modal');
+  if (modal) modal.hidden = true;
 }
 
 function disableFormWithMessage(form, message, statusTarget) {

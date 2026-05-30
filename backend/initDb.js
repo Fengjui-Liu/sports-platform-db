@@ -57,6 +57,33 @@ async function initDb() {
       await db.query('ALTER TABLE USERFOLLOW ADD INDEX idx_userfollow_followee_created (followee_id, created_at)');
     }
   });
+
+  await runSafe('SPORTBOARD.sport_type unique', async () => {
+    if (!(await indexExists('SPORTBOARD', 'sport_type'))) {
+      await db.query('ALTER TABLE SPORTBOARD ADD UNIQUE INDEX sport_type (sport_type)');
+    }
+  });
+
+  await runSafe('BODYRECORD.record_date', async () => {
+    if (!(await columnExists('BODYRECORD', 'record_date'))) {
+      await db.query('ALTER TABLE BODYRECORD ADD COLUMN record_date DATE NULL AFTER recorded_at');
+    }
+
+    await db.query(`
+      UPDATE BODYRECORD
+      SET record_date = DATE(recorded_at)
+      WHERE record_date IS NULL
+    `);
+
+    await db.query('ALTER TABLE BODYRECORD MODIFY COLUMN record_date DATE NOT NULL');
+  });
+
+  await runSafe('BODYRECORD unique user record date', async () => {
+    if (!(await indexExists('BODYRECORD', 'unique_user_record_date'))) {
+      await db.query('ALTER TABLE BODYRECORD ADD UNIQUE INDEX unique_user_record_date (user_id, record_date)');
+    }
+  });
+
   // ── 1. POSTBOOKMARK ───────────────────────────────────────────────────────
   await db.query(`
     CREATE TABLE IF NOT EXISTS POSTBOOKMARK (

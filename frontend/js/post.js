@@ -33,7 +33,7 @@ function renderPost(post, currentUser) {
   el('#post-detail').innerHTML = `
     <div class="action-row">
       <div>
-        <p class="eyebrow">${escapeHtml(post.board_name)}</p>
+        <p class="eyebrow">${getSportIcon(post.board_name)}${escapeHtml(post.board_name)}</p>
         <h1>${escapeHtml(post.title || '未命名貼文')}</h1>
         <div class="meta-line">
           ${renderPostTypeLabel(post.post_type)} ·

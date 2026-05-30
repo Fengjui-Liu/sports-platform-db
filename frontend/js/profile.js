@@ -10,6 +10,17 @@ async function getMyFollowers(userId) {
   return API.get(`/users/me/followers?user_id=${encodeURIComponent(userId)}`);
 }
 
+let bodyRecordState = {
+  records: [],
+  chartMonth: '',
+  historyMonth: '',
+  chartPoints: [],
+  userId: '',
+  canEdit: false,
+};
+
+let profileLayoutResizeBound = false;
+
 async function initProfilePage() {
   const params = getParams();
   const currentUser = getCurrentUser();
@@ -49,7 +60,10 @@ async function initProfilePage() {
 
     renderProfile(user, followStats, userId);
     renderStats({ ...user, ...followStats });
-    renderBodyRecords(bodyRecords);
+    renderBodyRecords(bodyRecords, {
+      userId,
+      canEdit: currentUser && Number(currentUser.user_id) === Number(userId),
+    });
 
     renderSimpleList(
       '#profile-posts',
@@ -59,7 +73,7 @@ async function initProfilePage() {
           <div class="action-row">
             <div>
               <div class="chip-row">
-                <span class="chip">${getBoardEmoji(post.board_name)} ${escapeHtml(post.board_name)}</span>
+                <span class="chip">${getSportIcon(post.board_name)}${escapeHtml(post.board_name)}</span>
               </div>
               <h3 style="margin-top:12px;">${escapeHtml(post.title || '未命名貼文')}</h3>
             </div>
@@ -138,12 +152,68 @@ async function initProfilePage() {
 
     bindProfileForms(userId, currentUser);
     bindFollowStatBadges(userId);
+    bindProfileLayoutResize();
+    scheduleProfileLayoutSync();
   } catch (err) {
     const card = el('#profile-card');
     if (card) {
       showMessage(card, err.message, true);
     }
   }
+}
+
+function bindProfileLayoutResize() {
+  if (profileLayoutResizeBound) {
+    return;
+  }
+
+  profileLayoutResizeBound = true;
+  window.addEventListener('resize', scheduleProfileLayoutSync);
+}
+
+function scheduleProfileLayoutSync() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(syncProfileTopLayout);
+  });
+}
+
+function syncProfileTopLayout() {
+  const layout = el('.profile-main-layout');
+  const leftColumn = el('.profile-left-column');
+  const editCard = leftColumn?.querySelector('.panel-card:not(.profile-posts-card)');
+  const postsCard = el('.profile-posts-card');
+  const postsList = el('.my-posts-list');
+  const bodyCard = el('.body-data-card');
+
+  if (!layout || !leftColumn || !editCard || !postsCard || !postsList || !bodyCard) {
+    return;
+  }
+
+  leftColumn.style.height = '';
+  postsCard.style.height = '';
+  postsList.style.maxHeight = '';
+
+  if (window.matchMedia('(max-width: 1080px)').matches) {
+    postsList.style.maxHeight = '340px';
+    return;
+  }
+
+  const bodyHeight = bodyCard.getBoundingClientRect().height;
+  const editHeight = editCard.getBoundingClientRect().height;
+  const leftStyle = window.getComputedStyle(leftColumn);
+  const gap = Number.parseFloat(leftStyle.rowGap || leftStyle.gap) || 16;
+  const postsHeight = Math.max(260, bodyHeight - editHeight - gap);
+  const postsHeader = postsCard.querySelector('.section-head');
+  const postsStyle = window.getComputedStyle(postsCard);
+  const verticalPadding =
+    (Number.parseFloat(postsStyle.paddingTop) || 0) +
+    (Number.parseFloat(postsStyle.paddingBottom) || 0);
+  const headerHeight = postsHeader ? postsHeader.getBoundingClientRect().height : 0;
+  const listHeight = Math.max(160, postsHeight - headerHeight - verticalPadding);
+
+  leftColumn.style.height = `${bodyHeight}px`;
+  postsCard.style.height = `${postsHeight}px`;
+  postsList.style.maxHeight = `${listHeight}px`;
 }
 
 function renderProfile(user, followStats, userId) {
@@ -310,85 +380,578 @@ function renderFollowList(target, users, emptyText) {
   `;
 }
 
-function renderBodyRecords(records) {
+function normalizeBodyRecord(record) {
+  const recordedAt = record.recordedAt || record.recorded_at || record.created_at || record.createdAt || '';
+
+  return {
+    id: record.id || record.record_id || record.recordId,
+    weight: toNullableNumber(record.weight),
+    height: toNullableNumber(record.height),
+    bodyFat: toNullableNumber(record.bodyFat ?? record.body_fat),
+    recordedAt,
+  };
+}
+
+function toNullableNumber(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function getRecordTime(record) {
+  const time = new Date(record.recordedAt).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function formatMonthKey(value) {
+  const date = value ? new Date(value) : new Date();
+
+  if (Number.isNaN(date.getTime())) {
+    return formatMonthKey(new Date());
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+function formatRecordMonth(record) {
+  return formatMonthKey(record.recordedAt);
+}
+
+function formatMonthLabel(monthKey) {
+  const [year, month] = String(monthKey).split('-');
+  return `${year} 年 ${month} 月`;
+}
+
+function addMonths(date, amount) {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+}
+
+function getSelectableMonths(records, extraMonths = []) {
+  const months = new Set();
+  const currentMonthDate = new Date();
+
+  for (let i = 0; i < 12; i += 1) {
+    months.add(formatMonthKey(addMonths(currentMonthDate, -i)));
+  }
+
+  records.forEach((record) => {
+    const month = formatRecordMonth(record);
+    if (month) {
+      months.add(month);
+    }
+  });
+
+  extraMonths.forEach((month) => {
+    if (month) {
+      months.add(month);
+    }
+  });
+
+  return [...months].sort((a, b) => b.localeCompare(a));
+}
+
+function sortRecordsByNewest(records) {
+  return [...records].sort((a, b) => getRecordTime(b) - getRecordTime(a));
+}
+
+function sortRecordsByOldest(records) {
+  return [...records].sort((a, b) => getRecordTime(a) - getRecordTime(b));
+}
+
+function getLatestRecord(records) {
+  return sortRecordsByNewest(records)[0] || null;
+}
+
+function getRecordsForMonth(records, monthKey) {
+  return records.filter((record) => formatRecordMonth(record) === monthKey);
+}
+
+function renderMonthOptions(months, selectedMonth) {
+  return months
+    .map(
+      (month) => `
+        <option value="${escapeHtml(month)}" ${month === selectedMonth ? 'selected' : ''}>
+          ${escapeHtml(formatMonthLabel(month))}
+        </option>
+      `
+    )
+    .join('');
+}
+
+function formatMetric(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(2) : '-';
+}
+
+function formatNullableMetric(value, unit) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${number.toFixed(2)} ${unit}` : '尚未紀錄';
+}
+
+function formatDay(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function buildBodyChartData(records) {
+  return sortRecordsByOldest(records).map((record) => ({
+    id: record.id,
+    date: formatDay(record.recordedAt),
+    fullDate: formatDate(record.recordedAt),
+    weight: record.weight,
+    height: record.height,
+    bodyFat: record.bodyFat,
+    recordedAt: record.recordedAt,
+  }));
+}
+
+function renderBodyRecordSummary(record) {
+  if (!record) {
+    return createEmptyState('尚未建立身體數據');
+  }
+
+  return `
+    <div class="mini-card body-latest-card">
+      <strong>最新紀錄</strong>
+      <div class="meta-line">${formatDate(record.recordedAt)}</div>
+      <div class="meta-line">
+        體重 ${formatMetric(record.weight)} kg / 身高 ${formatMetric(record.height)} cm / 體脂 ${formatMetric(record.bodyFat)} %
+      </div>
+    </div>
+  `;
+}
+
+function renderBodyHistoryList(records, selectedMonth) {
+  const list = el('#body-history-list');
+  if (!list) {
+    return;
+  }
+
+  const monthRecords = sortRecordsByNewest(getRecordsForMonth(records, selectedMonth));
+
+  if (!monthRecords.length) {
+    list.innerHTML = createEmptyState('此月份尚無歷史紀錄');
+    return;
+  }
+
+  list.innerHTML = monthRecords
+    .map(
+      (record) => `
+        <div class="mini-card">
+          <div class="action-row body-history-row">
+            <div>
+              <strong>${formatDate(record.recordedAt)}</strong>
+              <div class="meta-line">
+                體重 ${formatMetric(record.weight)} kg / 身高 ${formatMetric(record.height)} cm / 體脂 ${formatMetric(record.bodyFat)} %
+              </div>
+            </div>
+            ${bodyRecordState.canEdit ? `
+              <div class="body-history-actions">
+                <button class="ghost-btn body-record-edit" type="button" data-record-id="${escapeHtml(record.id)}">編輯</button>
+                <button class="danger-btn body-record-delete" type="button" data-record-id="${escapeHtml(record.id)}">刪除</button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `
+    )
+    .join('');
+
+  bindBodyHistoryRecordActions();
+}
+
+function openBodyHistoryModal() {
+  const modal = el('#body-history-modal');
+  const monthSelect = el('#body-history-month-select');
+
+  if (!modal) {
+    return;
+  }
+
+  if (monthSelect) {
+    monthSelect.value = bodyRecordState.historyMonth;
+  }
+
+  renderBodyHistoryList(bodyRecordState.records, bodyRecordState.historyMonth);
+  modal.hidden = false;
+}
+
+function closeBodyHistoryModal() {
+  const modal = el('#body-history-modal');
+  if (modal) {
+    modal.hidden = true;
+  }
+}
+
+function bindBodyRecordControls() {
+  el('#bodyrecord-month-select')?.addEventListener('change', (event) => {
+    bodyRecordState.chartMonth = event.currentTarget.value;
+    drawBodyChart(buildBodyChartData(getRecordsForMonth(bodyRecordState.records, bodyRecordState.chartMonth)));
+  });
+
+  el('#body-history-month-select')?.addEventListener('change', (event) => {
+    bodyRecordState.historyMonth = event.currentTarget.value;
+    renderBodyHistoryList(bodyRecordState.records, bodyRecordState.historyMonth);
+  });
+
+  el('#body-history-open')?.addEventListener('click', openBodyHistoryModal);
+  el('#body-history-close')?.addEventListener('click', closeBodyHistoryModal);
+  el('#body-history-close-icon')?.addEventListener('click', closeBodyHistoryModal);
+  el('#body-history-modal')?.addEventListener('click', (event) => {
+    if (event.target.id === 'body-history-modal') {
+      closeBodyHistoryModal();
+    }
+  });
+
+  bindBodyEditModalControls();
+}
+
+function bindBodyHistoryRecordActions() {
+  document.querySelectorAll('.body-record-edit').forEach((button) => {
+    button.addEventListener('click', () => openBodyEditModal(button.dataset.recordId));
+  });
+
+  document.querySelectorAll('.body-record-delete').forEach((button) => {
+    button.addEventListener('click', () => deleteBodyRecord(button.dataset.recordId));
+  });
+}
+
+function bindBodyEditModalControls() {
+  el('#body-edit-close-icon')?.addEventListener('click', closeBodyEditModal);
+  el('#body-edit-cancel')?.addEventListener('click', closeBodyEditModal);
+  el('#body-edit-modal')?.addEventListener('click', (event) => {
+    if (event.target.id === 'body-edit-modal') {
+      closeBodyEditModal();
+    }
+  });
+
+  el('#body-edit-form')?.addEventListener('submit', saveBodyRecordEdit);
+}
+
+function toDateTimeLocalValue(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function openBodyEditModal(recordId) {
+  const record = bodyRecordState.records.find((item) => String(item.id) === String(recordId));
+  const modal = el('#body-edit-modal');
+  const form = el('#body-edit-form');
+  const status = el('#body-edit-status');
+
+  if (!record || !modal || !form) {
+    return;
+  }
+
+  form.record_id.value = record.id;
+  form.weight.value = record.weight ?? '';
+  form.height.value = record.height ?? '';
+  form.body_fat.value = record.bodyFat ?? '';
+  form.recorded_at.value = toDateTimeLocalValue(record.recordedAt);
+  showMessage(status, '');
+  modal.hidden = false;
+  form.weight.focus();
+}
+
+function closeBodyEditModal() {
+  const modal = el('#body-edit-modal');
+  if (modal) {
+    modal.hidden = true;
+  }
+}
+
+async function refreshBodyRecords(options = {}) {
+  if (!bodyRecordState.userId) {
+    return;
+  }
+
+  const records = await API.get(`/users/${bodyRecordState.userId}/bodyrecord`);
+  renderBodyRecords(records, {
+    userId: bodyRecordState.userId,
+    canEdit: bodyRecordState.canEdit,
+    chartMonth: options.chartMonth || bodyRecordState.chartMonth,
+    historyMonth: options.historyMonth || bodyRecordState.historyMonth,
+  });
+
+  if (options.keepHistoryOpen) {
+    openBodyHistoryModal();
+  }
+}
+
+async function saveBodyRecordEdit(event) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const status = el('#body-edit-status');
+  if (!(form instanceof HTMLFormElement)) {
+    return;
+  }
+
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  const recordId = form.record_id.value;
+  const payload = serializeForm(form);
+  delete payload.record_id;
+
+  if (payload.recorded_at) {
+    payload.recorded_at = toApiDateTime(payload.recorded_at);
+  }
+
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = '儲存中...';
+  }
+  showMessage(status, '');
+
+  try {
+    await API.put(`/users/${bodyRecordState.userId}/bodyrecord/${recordId}`, payload);
+    const editedMonth = formatMonthKey(payload.recorded_at);
+    closeBodyEditModal();
+    await refreshBodyRecords({
+      chartMonth: editedMonth,
+      historyMonth: editedMonth,
+      keepHistoryOpen: true,
+    });
+  } catch (err) {
+    showMessage(status, err.message || '更新身體數據失敗', true);
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = '儲存修改';
+    }
+  }
+}
+
+async function deleteBodyRecord(recordId) {
+  if (!recordId) {
+    return;
+  }
+
+  const confirmed = window.confirm('確定要刪除這筆身體數據紀錄嗎？此操作無法復原。');
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await API.delete(`/users/${bodyRecordState.userId}/bodyrecord/${recordId}`);
+    await refreshBodyRecords({ keepHistoryOpen: true });
+  } catch (err) {
+    window.alert(err.message || '刪除身體數據失敗');
+  }
+}
+
+function renderBodyRecords(records, options = {}) {
   const chartShell = el('#bodyrecord-chart');
   if (!chartShell) {
     return;
   }
 
-  if (!records.length) {
-    chartShell.innerHTML = createEmptyState('目前尚無身體紀錄');
-    return;
-  }
+  const normalizedRecords = records.map(normalizeBodyRecord);
+  const latestRecord = getLatestRecord(normalizedRecords);
+  const defaultMonth = latestRecord ? formatRecordMonth(latestRecord) : formatMonthKey(new Date());
+  const nextChartMonth = options.chartMonth || bodyRecordState.chartMonth || defaultMonth;
+  const nextHistoryMonth = options.historyMonth || bodyRecordState.historyMonth || defaultMonth;
+  const months = getSelectableMonths(normalizedRecords, [nextChartMonth, nextHistoryMonth]);
+  const chartData = buildBodyChartData(getRecordsForMonth(normalizedRecords, nextChartMonth));
+  const nextUserId = options.userId || bodyRecordState.userId;
+  const nextCanEdit = options.canEdit ?? bodyRecordState.canEdit;
+
+  bodyRecordState = {
+    records: normalizedRecords,
+    chartMonth: nextChartMonth,
+    historyMonth: nextHistoryMonth,
+    chartPoints: [],
+    userId: nextUserId,
+    canEdit: nextCanEdit,
+  };
 
   chartShell.innerHTML = `
+    <div class="bodyrecord-toolbar">
+      <label for="bodyrecord-month-select">查看月份：</label>
+      <select id="bodyrecord-month-select">
+        ${renderMonthOptions(months, nextChartMonth)}
+      </select>
+    </div>
     <div class="chart-shell">
-      <canvas id="body-chart" class="chart-canvas" width="900" height="260"></canvas>
+      <canvas id="body-chart" class="chart-canvas"></canvas>
+      <div id="body-chart-tooltip" class="body-chart-tooltip" hidden></div>
       <div class="legend">
         <span><span class="legend-dot" style="background:#1f4396;"></span>體重</span>
         <span><span class="legend-dot" style="background:#2d9ce0;"></span>體脂</span>
       </div>
     </div>
-    <div class="stack-list" style="margin-top:16px;">
-      ${records
-        .map(
-          (record) => `
-            <div class="mini-card">
-              <strong>${formatDate(record.recorded_at)}</strong>
-              <div class="meta-line">
-                體重 ${record.weight} kg / 身高 ${record.height} cm / 體脂 ${record.body_fat} %
-              </div>
-            </div>
-          `
-        )
-        .join('')}
+    <div class="bodyrecord-summary">
+      ${renderBodyRecordSummary(latestRecord)}
+      <button id="body-history-open" class="ghost-btn" type="button">查看歷史紀錄</button>
+    </div>
+    <div id="body-history-modal" class="modal-backdrop" hidden>
+      <div class="modal-card body-history-modal-card" role="dialog" aria-modal="true" aria-labelledby="body-history-title">
+        <div class="modal-head">
+          <h2 id="body-history-title">歷史紀錄</h2>
+          <button id="body-history-close-icon" class="ghost-btn modal-close-icon" type="button" aria-label="關閉">x</button>
+        </div>
+        <div class="bodyrecord-toolbar">
+          <label for="body-history-month-select">月份：</label>
+          <select id="body-history-month-select">
+            ${renderMonthOptions(months, nextHistoryMonth)}
+          </select>
+        </div>
+        <div id="body-history-list" class="body-history-list"></div>
+        <div class="modal-actions">
+          <button id="body-history-close" class="primary-btn" type="button">關閉</button>
+        </div>
+      </div>
+    </div>
+    <div id="body-edit-modal" class="modal-backdrop" hidden>
+      <form id="body-edit-form" class="modal-card body-edit-modal-card" role="dialog" aria-modal="true" aria-labelledby="body-edit-title">
+        <div class="modal-head">
+          <h2 id="body-edit-title">編輯身體數據</h2>
+          <button id="body-edit-close-icon" class="ghost-btn modal-close-icon" type="button" aria-label="關閉">x</button>
+        </div>
+        <input type="hidden" name="record_id">
+        <label class="form-field">
+          <span>體重 kg</span>
+          <input type="number" name="weight" step="0.1" required>
+        </label>
+        <label class="form-field">
+          <span>身高 cm</span>
+          <input type="number" name="height" step="0.1" required>
+        </label>
+        <label class="form-field">
+          <span>體脂 %</span>
+          <input type="number" name="body_fat" step="0.1" required>
+        </label>
+        <label class="form-field">
+          <span>紀錄日期時間</span>
+          <input type="datetime-local" name="recorded_at" required>
+        </label>
+        <div id="body-edit-status" class="form-status" aria-live="polite"></div>
+        <div class="modal-actions">
+          <button id="body-edit-cancel" class="gray-btn" type="button">取消</button>
+          <button class="primary-btn" type="submit">儲存修改</button>
+        </div>
+      </form>
     </div>
   `;
 
-  drawBodyChart([...records].reverse());
+  drawBodyChart(chartData);
+  bindBodyRecordControls();
+  scheduleProfileLayoutSync();
 }
 
-function drawBodyChart(records) {
+function drawBodyChart(chartData) {
   const canvas = el('#body-chart');
   if (!canvas) {
     return;
   }
 
   const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
-  const padding = 32;
-  const weights = records.map((item) => Number(item.weight));
-  const bodyFats = records.map((item) => Number(item.body_fat));
-  const allValues = [...weights, ...bodyFats];
-  const maxValue = Math.max(...allValues);
-  const minValue = Math.min(...allValues);
-  const range = maxValue - minValue || 1;
+  const cssWidth = Math.max(canvas.clientWidth, 320);
+  const cssHeight = Math.max(canvas.clientHeight, 300);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const width = cssWidth;
+  const height = cssHeight;
+  const padding = {
+    top: 24,
+    right: 24,
+    bottom: 44,
+    left: 46,
+  };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const allValues = chartData
+    .flatMap((item) => [item.weight, item.bodyFat])
+    .filter((value) => Number.isFinite(value));
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = '#f8faff';
   ctx.fillRect(0, 0, width, height);
+  bodyRecordState.chartPoints = [];
+  hideBodyChartTooltip();
+
+  if (!chartData.length || !allValues.length) {
+    ctx.fillStyle = '#6f7d97';
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('此月份尚無身體數據紀錄', width / 2, height / 2);
+    return;
+  }
+
+  const maxValue = Math.max(...allValues);
+  const minValue = Math.min(...allValues);
+  const valuePadding = Math.max((maxValue - minValue) * 0.12, maxValue === minValue ? Math.max(Math.abs(maxValue) * 0.08, 1) : 0);
+  const domainMin = minValue - valuePadding;
+  const domainMax = maxValue + valuePadding;
+  const range = domainMax - domainMin || 1;
+
   ctx.strokeStyle = '#dbe3f1';
   ctx.lineWidth = 1;
 
   for (let i = 0; i < 4; i += 1) {
-    const y = padding + ((height - padding * 2) / 3) * i;
+    const y = padding.top + (plotHeight / 3) * i;
     ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
     ctx.stroke();
+
+    const value = domainMax - (range / 3) * i;
+    ctx.fillStyle = '#6f7d97';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(value.toFixed(0), padding.left - 8, y);
   }
 
   const toPoint = (value, index, total) => {
-    const x = padding + ((width - padding * 2) / Math.max(total - 1, 1)) * index;
-    const y = height - padding - ((value - minValue) / range) * (height - padding * 2);
+    const x = total === 1
+      ? padding.left + plotWidth / 2
+      : padding.left + (plotWidth / Math.max(total - 1, 1)) * index;
+    const y = padding.top + plotHeight - ((value - domainMin) / range) * plotHeight;
     return { x, y };
   };
+  const hitPoints = [];
 
-  const drawLine = (values, color) => {
+  const drawLine = (key, color) => {
+    const points = chartData
+      .map((item, index) => {
+        const value = item[key];
+        return Number.isFinite(value) ? { ...toPoint(value, index, chartData.length), value, data: item } : null;
+      })
+      .filter(Boolean);
+
+    if (!points.length) {
+      return;
+    }
+
     ctx.beginPath();
-    values.forEach((value, index) => {
-      const point = toPoint(value, index, values.length);
+    points.forEach((point, index) => {
       if (index === 0) {
         ctx.moveTo(point.x, point.y);
       } else {
@@ -399,17 +962,77 @@ function drawBodyChart(records) {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    values.forEach((value, index) => {
-      const point = toPoint(value, index, values.length);
+    points.forEach((point) => {
       ctx.beginPath();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
       ctx.fillStyle = color;
       ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+      hitPoints.push(point);
     });
   };
 
-  drawLine(weights, '#1f4396');
-  drawLine(bodyFats, '#2d9ce0');
+  drawLine('weight', '#1f4396');
+  drawLine('bodyFat', '#2d9ce0');
+
+  ctx.fillStyle = '#6f7d97';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  chartData.forEach((record, index) => {
+    const point = toPoint(domainMin, index, chartData.length);
+    ctx.fillText(record.date, point.x, height - padding.bottom + 14);
+  });
+
+  bodyRecordState.chartPoints = hitPoints;
+
+  bindBodyChartTooltip();
+}
+
+function hideBodyChartTooltip() {
+  const tooltip = el('#body-chart-tooltip');
+  if (tooltip) {
+    tooltip.hidden = true;
+  }
+}
+
+function bindBodyChartTooltip() {
+  const canvas = el('#body-chart');
+  const tooltip = el('#body-chart-tooltip');
+  if (!canvas || !tooltip) {
+    return;
+  }
+
+  canvas.onmouseleave = hideBodyChartTooltip;
+  canvas.onmousemove = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const nearest = bodyRecordState.chartPoints
+      .map((point) => ({
+        point,
+        distance: Math.hypot(point.x - mouseX, point.y - mouseY),
+      }))
+      .sort((a, b) => a.distance - b.distance)[0];
+
+    if (!nearest || nearest.distance > 18) {
+      hideBodyChartTooltip();
+      return;
+    }
+
+    const data = nearest.point.data;
+    tooltip.innerHTML = `
+      <div><strong>${escapeHtml(data.fullDate)}</strong></div>
+      <div>體重：${escapeHtml(formatNullableMetric(data.weight, 'kg'))}</div>
+      <div>身高：${escapeHtml(formatNullableMetric(data.height, 'cm'))}</div>
+      <div>體脂：${escapeHtml(formatNullableMetric(data.bodyFat, '%'))}</div>
+    `;
+    tooltip.style.left = `${Math.max(8, Math.min(nearest.point.x + 12, rect.width - 190))}px`;
+    tooltip.style.top = `${Math.max(nearest.point.y - 76, 8)}px`;
+    tooltip.hidden = false;
+  };
 }
 
 function renderSimpleList(selector, items, renderer, emptyText) {
@@ -422,13 +1045,43 @@ function renderSimpleList(selector, items, renderer, emptyText) {
   target.innerHTML = items.length
     ? items.map(renderer).join('')
     : createEmptyState(emptyText);
+
+  if (selector === '#profile-posts') {
+    scheduleProfileLayoutSync();
+  }
+}
+
+function setBodyRecordFormSubmitting(form, isSubmitting) {
+  if (!form) {
+    return;
+  }
+
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = isSubmitting || !form.checkValidity();
+    submitButton.textContent = isSubmitting ? '新增中...' : '新增數據';
+  }
+}
+
+function updateBodyRecordSubmitState(form) {
+  if (!form) {
+    return;
+  }
+
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = !form.checkValidity();
+  }
 }
 
 function bindProfileForms(userId, currentUser) {
   const canEdit = currentUser && Number(currentUser.user_id) === Number(userId);
+  const bodyRecordForm = el('#bodyrecord-form');
+  const bodyRecordStatus = el('#bodyrecord-status');
+
   if (!canEdit) {
     disableFormWithMessage(el('#profile-form'), '只能編輯自己的個人資料');
-    disableFormWithMessage(el('#bodyrecord-form'), '只能新增自己的身體紀錄');
+    disableFormWithMessage(bodyRecordForm, '只能新增自己的身體紀錄', bodyRecordStatus);
   }
 
   el('#profile-form')?.addEventListener('submit', async (event) => {
@@ -447,23 +1100,55 @@ function bindProfileForms(userId, currentUser) {
     }
   });
 
-  el('#bodyrecord-form')?.addEventListener('submit', async (event) => {
+  if (bodyRecordForm) {
+    bodyRecordForm.addEventListener('input', () => updateBodyRecordSubmitState(bodyRecordForm));
+    updateBodyRecordSubmitState(bodyRecordForm);
+  }
+
+  bodyRecordForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!canEdit) {
       return;
     }
 
-    const payload = serializeForm(event.currentTarget);
+    const form = event.currentTarget;
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      updateBodyRecordSubmitState(form);
+      return;
+    }
+
+    const payload = serializeForm(form);
 
     if (payload.recorded_at) {
       payload.recorded_at = toApiDateTime(payload.recorded_at);
     }
 
+    showMessage(bodyRecordStatus, '');
+    setBodyRecordFormSubmitting(form, true);
+
     try {
-      await API.post(`/users/${userId}/bodyrecord`, payload);
-      window.location.reload();
+      const created = await API.post(`/users/${userId}/bodyrecord`, payload);
+
+      const nextRecords = await API.get(`/users/${userId}/bodyrecord`);
+      const createdMonth = formatMonthKey(created.recordedAt || created.recorded_at || payload.recorded_at || new Date());
+      renderBodyRecords(nextRecords, {
+        userId,
+        canEdit,
+        chartMonth: createdMonth || bodyRecordState.chartMonth,
+        historyMonth: bodyRecordState.historyMonth || createdMonth,
+      });
+      form.reset();
+      updateBodyRecordSubmitState(form);
+      showMessage(bodyRecordStatus, '新增身體數據成功');
     } catch (err) {
-      window.alert(err.message);
+      showMessage(bodyRecordStatus, err.message || '新增身體數據失敗', true);
+    } finally {
+      setBodyRecordFormSubmitting(form, false);
     }
   });
 }

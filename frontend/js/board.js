@@ -7,6 +7,8 @@ async function initBoardPage() {
   const boardId = params.get('id') || params.get('board_id');
   const activeTab = params.get('tab');
 
+  updateBoardCreateLinks(boardId);
+
   try {
     const boards = await API.get('/boards');
 
@@ -75,6 +77,16 @@ async function initBoardPage() {
   }
 }
 
+function updateBoardCreateLinks(boardId) {
+  if (!boardId) return;
+
+  document.querySelectorAll('a[href^="/create.html?tab="]').forEach((link) => {
+    const url = new URL(link.getAttribute('href'), window.location.origin);
+    url.searchParams.set('board_id', boardId);
+    link.setAttribute('href', `${url.pathname}${url.search}`);
+  });
+}
+
 function activateTab(tabName) {
   const button = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
   if (button) button.click();
@@ -92,7 +104,7 @@ function renderBoardHero(board, fallbackPostCount = 0, plans = [], invitations =
   const postCount = Number(board.post_count ?? fallbackPostCount ?? 0);
   const planCount = Number(board.plan_count ?? plans.length ?? 0);
   const invitationCount = Number(board.invitation_count ?? invitations.length ?? 0);
-  const boardIcon = getSportIcon(board.sport_type) || '<i class="bi bi-trophy" style="flex-shrink:0;font-size:15px;"></i>';
+  const boardIcon = getSportIcon(board.sport_type);
 
   el('#board-hero').innerHTML = `
     <div class="action-row" style="align-items:flex-start;">
@@ -149,7 +161,7 @@ function renderPostCard(post, boardName) {
             <a href="/user.html?id=${post.user_id}" data-card-ignore style="color:var(--primary);text-decoration:none;">${escapeHtml(username)}</a>
           </strong>
           <span class="meta-dot">&middot;</span>
-          <span class="post-board-tag">${escapeHtml(boardName || '\u904b\u52d5\u5c08\u6b04')}</span>
+          <span class="post-board-tag">${getSportIcon(boardName)}${escapeHtml(boardName || '\u904b\u52d5\u5c08\u6b04')}</span>
           <span class="meta-dot">&middot;</span>
           <span class="post-time">${formatPostTime(post.created_at)}</span>
         </div>
@@ -368,7 +380,7 @@ function renderBoardPlans(boardPlans, currentUser) {
             <div class="chip-row">
               <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level) || '未設定難度')}</span>
               <span class="chip muted-chip">
-                ${escapeHtml(plan.sport_type || plan.exercise_name || '未設定項目')}
+                ${plan.sport_type ? getSportIcon(plan.sport_type) : ''}${escapeHtml(plan.sport_type || plan.exercise_name || '未設定項目')}
               </span>
             </div>
 

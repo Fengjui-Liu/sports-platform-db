@@ -140,6 +140,7 @@ async function initCreatePage() {
   const currentUser = getCurrentUser();
   const params = getParams();
   const defaultTab = params.get('tab');
+  const defaultBoardId = params.get('board_id') || params.get('id');
 
   if (!currentUser) {
     disableFormWithMessage(el('#post-form'), '請先登入後再發文');
@@ -150,7 +151,7 @@ async function initCreatePage() {
   try {
     const boards = await API.get('/boards');
 
-    fillCreateBoardSelects(boards);
+    fillCreateBoardSelects(boards, defaultBoardId);
     bindCreateForms(currentUser, boards);
 
     if (defaultTab) {
@@ -187,15 +188,15 @@ function activateCreateTab(tabName) {
   }
 }
 
-function fillCreateBoardSelects(boards) {
-  fillCreateSingleBoardSelect('#post-board-select', boards);
-  fillCreateSingleBoardSelect('#plan-board-select', boards);
-  fillCreateSingleBoardSelect('#invitation-board-select', boards);
+function fillCreateBoardSelects(boards, defaultBoardId = '') {
+  fillCreateSingleBoardSelect('#post-board-select', boards, defaultBoardId);
+  fillCreateSingleBoardSelect('#plan-board-select', boards, defaultBoardId);
+  fillCreateSingleBoardSelect('#invitation-board-select', boards, defaultBoardId);
 
   syncCreatePlanSportType(boards);
 }
 
-function fillCreateSingleBoardSelect(selector, boards) {
+function fillCreateSingleBoardSelect(selector, boards, defaultBoardId = '') {
   const select = el(selector);
 
   if (!select) {
@@ -208,14 +209,15 @@ function fillCreateSingleBoardSelect(selector, boards) {
       .map(
         (board) => `
           <option value="${board.board_id}">
-            ${escapeHtml(board.sport_type)}
+            ${getBoardEmoji(board.sport_type)} ${escapeHtml(board.sport_type)}
           </option>
         `
       )
       .join('')}
   `;
 
-  select.value = '';
+  const hasDefaultBoard = boards.some((board) => String(board.board_id) === String(defaultBoardId));
+  select.value = hasDefaultBoard ? String(defaultBoardId) : '';
 }
 
 function syncCreatePlanSportType(boards) {

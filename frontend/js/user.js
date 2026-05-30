@@ -139,7 +139,7 @@ function renderUserPosts(posts) {
       <div class="action-row">
         <div>
           <div class="chip-row" style="margin-bottom:8px;">
-            <span class="chip">${escapeHtml(post.board_name || '未分類')}</span>
+            <span class="chip">${getSportIcon(post.board_name)}${escapeHtml(post.board_name || '未分類')}</span>
           </div>
           <h3 style="margin:0;">${escapeHtml(post.title || '未命名貼文')}</h3>
           <p class="page-description" style="-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">
