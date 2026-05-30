@@ -142,7 +142,19 @@ function renderFeedItems(items, currentUser) {
     )
     .join('');
 
+  animateFeedCards(feedEl);
   setupFeedInteractions(feedEl, currentUser);
+}
+
+function animateFeedCards(feedEl) {
+  feedEl.querySelectorAll('.post-feed-card').forEach((card, index) => {
+    card.style.animationDelay = `${index * 60}ms`;
+    card.classList.add('card-animate');
+    card.addEventListener('animationend', () => {
+      card.classList.remove('card-animate');
+      card.style.animationDelay = '';
+    }, { once: true });
+  });
 }
 
 // ── 揪團卡片 ─────────────────────────────────────────────────────────────────
@@ -309,6 +321,7 @@ async function handleFeedLike(likeBtn, currentUser) {
   likeBtn.classList.toggle('is-liked', newLiked);
   countEl.textContent = newCount;
   iconEl.textContent = newLiked ? '♥' : '♡';
+  triggerLikeAnimation(likeBtn, countEl);
 
   try {
     if (newLiked) {

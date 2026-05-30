@@ -509,6 +509,28 @@ function getDefaultBoardDescription(name) {
   return `${String(name || '').trim()}交流、訓練心得、比賽討論專欄`;
 }
 
+function triggerLikeAnimation(likeBtn, countEl) {
+  const iconEl = likeBtn?.querySelector('.like-icon');
+
+  if (iconEl) {
+    iconEl.classList.remove('like-pop');
+    void iconEl.offsetWidth;
+    iconEl.classList.add('like-pop');
+    iconEl.addEventListener('animationend', () => {
+      iconEl.classList.remove('like-pop');
+    }, { once: true });
+  }
+
+  if (countEl) {
+    countEl.classList.remove('count-pop');
+    void countEl.offsetWidth;
+    countEl.classList.add('count-pop');
+    window.setTimeout(() => {
+      countEl.classList.remove('count-pop');
+    }, 200);
+  }
+}
+
 function ensureCreateBoardModal() {
   let modal = el('#create-board-modal');
   if (modal) return modal;

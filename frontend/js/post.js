@@ -234,6 +234,7 @@ function bindPostActions(postId, post, currentUser) {
     likeBtn.classList.toggle('is-liked', newLiked);
     likeBtn.querySelector('.like-icon').textContent = newLiked ? '♥' : '♡';
     likeCount.textContent = newCount;
+    triggerLikeAnimation(likeBtn, likeCount);
 
     try {
       if (newLiked) {

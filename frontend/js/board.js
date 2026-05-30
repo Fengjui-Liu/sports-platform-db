@@ -261,6 +261,7 @@ async function handleLikeClick(likeBtn, currentUser) {
   likeBtn.classList.toggle('is-liked', newLiked);
   countEl.textContent = newCount;
   iconEl.textContent = newLiked ? '♥' : '♡';
+  triggerLikeAnimation(likeBtn, countEl);
 
   try {
     if (newLiked) {
