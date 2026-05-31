@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS WORKOUTPLAN (
   sport_type VARCHAR(50) NOT NULL,
   difficulty_level ENUM('easy', 'medium', 'hard') NOT NULL,
   exercise_name VARCHAR(50) NOT NULL,
-  muscle_group VARCHAR(50) DEFAULT NULL,
+  muscle_group VARCHAR(50) NOT NULL,
   reps INT NOT NULL,
   `sets` INT NOT NULL,
   target_distance DECIMAL(6,2) DEFAULT NULL,

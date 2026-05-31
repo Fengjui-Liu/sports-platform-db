@@ -799,6 +799,41 @@ function bindBodyHistoryModalControls() {
   }
 }
 
+function bindBodyHistoryModalControls() {
+  const openButton = el('#body-history-open');
+  const closeButton = el('#body-history-close');
+  const closeIcon = el('#body-history-close-icon');
+  const modal = el('#body-history-modal');
+
+  [openButton, closeButton, closeIcon, modal].forEach((target) => {
+    if (!target) return;
+    target.onmouseover = null;
+    target.onmouseenter = null;
+    target.onmouseleave = null;
+    target.onmouseout = null;
+  });
+
+  if (openButton) {
+    openButton.onclick = openBodyHistoryModal;
+  }
+
+  if (closeButton) {
+    closeButton.onclick = closeBodyHistoryModal;
+  }
+
+  if (closeIcon) {
+    closeIcon.onclick = closeBodyHistoryModal;
+  }
+
+  if (modal) {
+    modal.onclick = (event) => {
+      if (event.target === modal) {
+        closeBodyHistoryModal();
+      }
+    };
+  }
+}
+
 async function loadAndUpdateChart(range, rangeStart, rangeEnd) {
   if (!bodyRecordState.userId) return;
   if (isLoadingBodyRecord) return;

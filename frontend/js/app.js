@@ -411,7 +411,7 @@ function renderTopNav() {
         placeholder="搜尋..."
         autocomplete="off"
       >
-      <button type="submit" class="header-search-btn">搜尋</button>
+      <button type="submit" class="header-search-btn" aria-label="搜尋">&#x1F50D;&#xFE0E;</button>
     </form>
 
     <div class="header-actions">
