@@ -1992,6 +1992,10 @@ body[data-page="profile"] .profile-container {
   width: min(520px, 100%);
 }
 
+#body-history-open {
+  margin-bottom: 16px;
+}
+
 /* ── Post Avatar Link ── */
 .post-avatar-link {
   display: block;

@@ -74,6 +74,10 @@ function buildBodyRecordUrl(userId, range, customStart = '', customEnd = '') {
   return `/users/${userId}/bodyrecord${params.length ? `?${params.join('&')}` : ''}`;
 }
 
+function buildBodyRecordHistoryUrl(userId, monthKey) {
+  return `/users/${userId}/bodyrecord?month=${encodeURIComponent(monthKey)}`;
+}
+
 function drawCanvasMessage(canvas, message) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -594,6 +598,17 @@ function getRecordsForMonth(records, monthKey) {
   return records.filter((record) => formatRecordMonth(record) === monthKey);
 }
 
+function mergeBodyRecords(existingRecords, incomingRecords) {
+  const recordsById = new Map();
+  existingRecords.forEach((record) => {
+    recordsById.set(String(record.id), record);
+  });
+  incomingRecords.forEach((record) => {
+    recordsById.set(String(record.id), record);
+  });
+  return [...recordsById.values()];
+}
+
 function renderMonthOptions(months, selectedMonth) {
   return months
     .map(
@@ -727,6 +742,7 @@ function openBodyHistoryModal() {
   modal.hidden = false;
   isBodyHistoryModalOpen = true;
   document.body.classList.add('modal-open');
+  loadBodyHistoryMonth(bodyRecordState.historyMonth);
 }
 
 function closeBodyHistoryModal() {
@@ -761,9 +777,36 @@ function stopBodyHistoryModalClick(event) {
   event.stopPropagation();
 }
 
-function handleBodyHistoryMonthChange(event) {
-  bodyRecordState.historyMonth = event.currentTarget.value;
-  renderBodyHistoryList(bodyRecordState.records, bodyRecordState.historyMonth);
+async function loadBodyHistoryMonth(monthKey) {
+  if (!bodyRecordState.userId || !monthKey) {
+    return;
+  }
+
+  const selectedMonth = monthKey;
+  const list = el('#body-history-list');
+  if (list) {
+    list.innerHTML = createEmptyState('載入中...');
+  }
+
+  try {
+    const records = await API.get(buildBodyRecordHistoryUrl(bodyRecordState.userId, selectedMonth));
+    const normalizedRecords = records.map(normalizeBodyRecord);
+    bodyRecordState.records = mergeBodyRecords(bodyRecordState.records, normalizedRecords);
+
+    if (bodyRecordState.historyMonth === selectedMonth) {
+      renderBodyHistoryList(normalizedRecords, selectedMonth);
+    }
+  } catch (err) {
+    if (list) {
+      list.innerHTML = createEmptyState(err.message || '載入歷史紀錄失敗');
+    }
+  }
+}
+
+async function handleBodyHistoryMonthChange(event) {
+  const selectedMonth = event.currentTarget.value;
+  bodyRecordState.historyMonth = selectedMonth;
+  await loadBodyHistoryMonth(selectedMonth);
 }
 
 function bindBodyHistoryModalControls() {
@@ -773,37 +816,6 @@ function bindBodyHistoryModalControls() {
   const modal = el('#body-history-modal');
   const modalCard = modal?.querySelector('.modal-card');
   const monthSelect = el('#body-history-month-select');
-
-  if (openButton) {
-    openButton.onclick = openBodyHistoryModal;
-  }
-
-  if (closeButton) {
-    closeButton.onclick = closeBodyHistoryModal;
-  }
-
-  if (closeIcon) {
-    closeIcon.onclick = closeBodyHistoryModal;
-  }
-
-  if (modal) {
-    modal.onclick = closeBodyHistoryModalFromOverlay;
-  }
-
-  if (modalCard) {
-    modalCard.onclick = stopBodyHistoryModalClick;
-  }
-
-  if (monthSelect) {
-    monthSelect.onchange = handleBodyHistoryMonthChange;
-  }
-}
-
-function bindBodyHistoryModalControls() {
-  const openButton = el('#body-history-open');
-  const closeButton = el('#body-history-close');
-  const closeIcon = el('#body-history-close-icon');
-  const modal = el('#body-history-modal');
 
   [openButton, closeButton, closeIcon, modal].forEach((target) => {
     if (!target) return;
@@ -831,6 +843,14 @@ function bindBodyHistoryModalControls() {
         closeBodyHistoryModal();
       }
     };
+  }
+
+  if (modalCard) {
+    modalCard.onclick = stopBodyHistoryModalClick;
+  }
+
+  if (monthSelect) {
+    monthSelect.onchange = handleBodyHistoryMonthChange;
   }
 }
 
