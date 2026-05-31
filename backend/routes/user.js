@@ -70,6 +70,34 @@ function handleAvatarUploadError(err, _req, res, next) {
   return res.status(400).json({ error: err.message || '頭像上傳失敗' });
 }
 
+function getLocalAvatarFilePath(avatarUrl) {
+  if (!avatarUrl) {
+    return null;
+  }
+
+  const value = String(avatarUrl).trim();
+  if (!value.startsWith('/uploads/avatars/')) {
+    return null;
+  }
+
+  return path.join(__dirname, '..', value.replace(/^\//, ''));
+}
+
+async function removeAvatarFileIfExists(avatarUrl) {
+  const avatarPath = getLocalAvatarFilePath(avatarUrl);
+  if (!avatarPath) {
+    return;
+  }
+
+  try {
+    await fs.promises.unlink(avatarPath);
+  } catch (err) {
+    if (err?.code !== 'ENOENT') {
+      console.warn('Failed to remove avatar file:', err);
+    }
+  }
+}
+
 // 註冊
 router.post('/register', async (req, res) => {
   if (!ensureRequired(res, req.body, ['username', 'password', 'email'])) {
@@ -267,6 +295,49 @@ router.put('/:id', avatarUpload.single('avatar'), handleAvatarUploadError, async
         email: existingUser.email,
         bio: bio || '',
         profile_image: nextProfileImage,
+      },
+    });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.delete('/:id/avatar', async (req, res) => {
+  const userId = parseId(req.params.id);
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: '無效的 user id' });
+  }
+
+  const requestUserId = getRequestUserId(req);
+  if (Number.isNaN(requestUserId)) {
+    return res.status(401).json({ error: '請先登入' });
+  }
+
+  if (requestUserId !== userId) {
+    return res.status(403).json({ error: '只能移除自己的頭像' });
+  }
+
+  try {
+    const [[existingUser]] = await db.query(
+      'SELECT user_id, username, email, bio, profile_image FROM USER WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!existingUser) {
+      return res.status(404).json({ error: '找不到使用者' });
+    }
+
+    await db.query('UPDATE USER SET profile_image = NULL WHERE user_id = ?', [userId]);
+    await removeAvatarFileIfExists(existingUser.profile_image);
+
+    res.json({
+      message: '頭像已移除',
+      user: {
+        user_id: existingUser.user_id,
+        username: existingUser.username,
+        email: existingUser.email,
+        bio: existingUser.bio || '',
+        profile_image: null,
       },
     });
   } catch (err) {

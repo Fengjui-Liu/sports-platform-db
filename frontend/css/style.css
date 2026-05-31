@@ -918,6 +918,13 @@ body[data-page="profile"] .profile-container {
   display: none;
 }
 
+.avatar-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .profile-summary {
   display: flex;
   align-items: center;
