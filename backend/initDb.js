@@ -109,6 +109,7 @@ async function initDb() {
       content TEXT NOT NULL,
       image_url VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NULL DEFAULT NULL,
       INDEX idx_post_feed (board_id, created_at DESC),
       CONSTRAINT fk_post_user FOREIGN KEY (user_id) REFERENCES USER(user_id) ON DELETE CASCADE,
       CONSTRAINT fk_post_board FOREIGN KEY (board_id) REFERENCES SPORTBOARD(board_id) ON DELETE CASCADE
@@ -262,6 +263,12 @@ async function initDb() {
         WHERE title IS NULL OR TRIM(title) = ''
       `);
       await db.query('ALTER TABLE POST MODIFY COLUMN title VARCHAR(255) NOT NULL');
+    }
+  });
+
+  await runSafe('POST.updated_at', async () => {
+    if (!(await columnExists('POST', 'updated_at'))) {
+      await db.query('ALTER TABLE POST ADD COLUMN updated_at DATETIME NULL DEFAULT NULL AFTER created_at');
     }
   });
 

@@ -123,7 +123,7 @@ router.get('/:id/posts', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at, p.updated_at,
               u.username, u.profile_image,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count,

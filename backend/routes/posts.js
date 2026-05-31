@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
     }
 
     const [rows] = await db.query(
-      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at, p.updated_at,
               u.username, u.profile_image, b.sport_type AS board_name,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count,
@@ -102,7 +102,7 @@ router.get('/following', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at, p.updated_at,
               u.username, u.profile_image, b.sport_type AS board_name,
               COUNT(DISTINCT l.user_id) AS like_count,
               COUNT(DISTINCT c.comment_id) AS comment_count,
@@ -141,7 +141,7 @@ router.get('/:id', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at,
+      `SELECT p.post_id, p.user_id, p.board_id, p.title, p.post_type, p.content, p.image_url, p.created_at, p.updated_at,
               u.username, u.email, u.bio, u.profile_image,
               b.sport_type AS board_name, b.description AS board_description,
               COUNT(DISTINCT l.user_id) AS like_count,
@@ -265,7 +265,7 @@ router.put('/:id', async (req, res) => {
     }
 
     await db.query(
-      'UPDATE POST SET board_id = ?, title = ?, content = ?, image_url = ? WHERE post_id = ?',
+      'UPDATE POST SET board_id = ?, title = ?, content = ?, image_url = ?, updated_at = NOW() WHERE post_id = ?',
       [board_id, title.trim(), content, image_url || null, postId]
     );
 

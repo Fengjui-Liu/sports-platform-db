@@ -16,6 +16,8 @@ const POST_FEED_SELECT = `
     p.image_url,
     p.created_at,
     p.created_at         AS createdAt,
+    p.updated_at,
+    p.updated_at         AS updatedAt,
     u.username,
     u.username           AS authorName,
     u.profile_image,
@@ -44,7 +46,7 @@ const POST_FEED_SELECT = `
   LEFT JOIN POSTBOOKMARK pb ON pb.post_id = p.post_id AND pb.user_id = ?
   %%WHERE_CLAUSE%%
   GROUP BY p.post_id, p.user_id, p.board_id, p.title, p.content,
-           p.image_url, p.created_at, u.username, u.profile_image, b.sport_type
+           p.image_url, p.created_at, p.updated_at, u.username, u.profile_image, b.sport_type
 `;
 
 function buildPostFeedQuery({ follow = false, where = '' } = {}) {
@@ -118,6 +120,8 @@ router.get('/', async (req, res) => {
           NULL                 AS image_url,
           i.created_at,
           i.created_at         AS createdAt,
+          NULL                 AS updated_at,
+          NULL                 AS updatedAt,
           u.username,
           u.username           AS authorName,
           u.profile_image,

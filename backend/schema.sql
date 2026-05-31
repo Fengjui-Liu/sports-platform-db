@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS POST (
   content TEXT NOT NULL,
   image_url VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL DEFAULT NULL,
   INDEX idx_post_feed (board_id, created_at DESC),
   CONSTRAINT fk_post_user FOREIGN KEY (user_id) REFERENCES USER(user_id) ON DELETE CASCADE,
   CONSTRAINT fk_post_board FOREIGN KEY (board_id) REFERENCES SPORTBOARD(board_id) ON DELETE CASCADE

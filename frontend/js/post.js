@@ -40,7 +40,7 @@ function renderPost(post, currentUser) {
           <a class="user-link" href="/user.html?id=${post.user_id}">
             ${escapeHtml(post.username)}
           </a> ·
-          ${formatDate(post.created_at)}
+          ${formatPostMetaTime(post)}
         </div>
       </div>
 

@@ -141,7 +141,7 @@ async function initProfilePage() {
               <h3 style="margin-top:12px;">${escapeHtml(post.title || '未命名貼文')}</h3>
             </div>
             <div class="chip-row" style="justify-content:flex-end;">
-              <span class="meta-line">${formatDate(post.created_at)}</span>
+              <span class="meta-line">${formatPostMetaTime(post)}</span>
               ${canEditOwnContent ? `<span class="ghost-btn" style="min-height:36px;" onclick="event.preventDefault();event.stopPropagation();window.location.href='/edit-post.html?id=${post.post_id}';">編輯</span>` : ''}
             </div>
           </div>

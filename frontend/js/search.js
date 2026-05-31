@@ -73,6 +73,8 @@ function renderPostResults(posts) {
                 <strong class="post-author">${escapeHtml(post.username)}</strong>
                 <span class="meta-dot">·</span>
                 <span class="post-board-tag">${getSportIcon(post.board_name)}${escapeHtml(getSportName(post.board_name) || '未分類')}</span>
+                <span class="meta-dot">·</span>
+                <span class="post-time">${formatPostMetaTime(post)}</span>
               </div>
               <h3 class="post-card-title">${escapeHtml(post.title || '未命名貼文')}</h3>
               <p class="post-card-content">${escapeHtml(post.content || '')}</p>

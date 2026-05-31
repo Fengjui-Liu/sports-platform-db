@@ -180,6 +180,50 @@ function formatDate(value) {
   });
 }
 
+function formatPostDisplayTime(value) {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 60) return `${Math.max(1, diffMinutes)} 分鐘前`;
+
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  return date.toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' });
+}
+
+function formatPostMetaTime(post) {
+  const timeFormatter = typeof formatPostTime === 'function'
+    ? formatPostTime
+    : formatDate;
+  const createdText = timeFormatter(post?.created_at || post?.createdAt);
+  const updatedAt = post?.updated_at || post?.updatedAt;
+
+  if (!updatedAt) {
+    return createdText;
+  }
+
+  const createdTime = new Date(post?.created_at || post?.createdAt).getTime();
+  const updatedTime = new Date(updatedAt).getTime();
+
+  if (Number.isNaN(createdTime) || Number.isNaN(updatedTime)) {
+    return createdText;
+  }
+
+  if (Math.abs(updatedTime - createdTime) <= 1000) {
+    return createdText;
+  }
+
+  return `${createdText} · 編輯於 ${timeFormatter(updatedAt)}`;
+}
+
 function getCurrentUser() {
   try {
     const stored = localStorage.getItem('sports-platform-user');

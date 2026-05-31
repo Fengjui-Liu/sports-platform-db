@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
   try {
     const [[postsRows], [usersRows], [plansRows]] = await Promise.all([
       db.query(
-        `SELECT p.post_id, p.title, p.content, p.created_at,
+        `SELECT p.post_id, p.title, p.content, p.created_at, p.updated_at,
                 u.user_id, u.username, u.profile_image,
                 b.sport_type AS board_name,
                 COUNT(DISTINCT l.user_id) AS like_count,

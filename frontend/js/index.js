@@ -182,7 +182,7 @@ function renderInvitationCard(item) {
           <span class="meta-dot">·</span>
           <span class="post-board-tag">${getSportIcon(item.board_name)}${escapeHtml(getSportName(item.board_name) || '未分類')}</span>
           <span class="meta-dot">·</span>
-          <span class="post-time">${formatPostTime(item.created_at)}</span>
+          <span class="post-time">${formatPostMetaTime(item)}</span>
           <span class="invitation-badge ${ended ? 'invitation-badge-ended' : ''}">${ended ? '已結束' : '揪團'}</span>
         </div>
 
@@ -229,7 +229,7 @@ function renderPostCard(post, boardName) {
           <span class='meta-dot'>&middot;</span>
           <span class='post-board-tag'>${getSportIcon(boardName)}${escapeHtml(getSportName(boardName) || '\u904b\u52d5\u5c08\u6b04')}</span>
           <span class='meta-dot'>&middot;</span>
-          <span class='post-time'>${formatPostTime(post.created_at)}</span>
+          <span class='post-time'>${formatPostMetaTime(post)}</span>
         </div>
 
         <a class='post-title-link' href='${postUrl}' style='text-decoration:none;color:inherit;display:block;'>

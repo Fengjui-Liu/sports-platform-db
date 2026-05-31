@@ -146,7 +146,7 @@ function renderUserPosts(posts) {
             ${escapeHtml(post.content || '')}
           </p>
         </div>
-        <div class="meta-line" style="white-space:nowrap;flex-shrink:0;">${formatDate(post.created_at)}</div>
+        <div class="meta-line" style="white-space:nowrap;flex-shrink:0;">${formatPostMetaTime(post)}</div>
       </div>
       <div class="chip-row" style="margin-top:8px;">
         <span class="chip muted-chip">讚 ${post.like_count || 0}</span>
