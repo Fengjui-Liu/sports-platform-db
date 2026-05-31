@@ -25,6 +25,9 @@ async function initPostPage() {
   }
 }
 
+let activeLikeFloatingList = null;
+let likeFloatingDocumentHandlerBound = false;
+
 function renderPost(post, currentUser) {
   const isOwner = currentUser && Number(currentUser.user_id) === Number(post.user_id);
   const isLiked = Number(post.liked_by_viewer) === 1;
@@ -136,13 +139,32 @@ function bindLikeFloatingList() {
 
   if (!trigger || !floatingList) return;
 
+  activeLikeFloatingList = null;
+
   trigger.addEventListener('click', (event) => {
     event.stopPropagation();
-    floatingList.style.display = floatingList.style.display === 'block' ? 'none' : 'block';
+    const isOpen = activeLikeFloatingList === floatingList && floatingList.style.display === 'block';
+    closeLikeFloatingList();
+
+    if (!isOpen) {
+      floatingList.style.display = 'block';
+      activeLikeFloatingList = floatingList;
+    }
   });
 
   floatingList.addEventListener('click', (event) => event.stopPropagation());
-  document.addEventListener('click', () => { floatingList.style.display = 'none'; });
+
+  if (!likeFloatingDocumentHandlerBound) {
+    document.addEventListener('click', closeLikeFloatingList);
+    likeFloatingDocumentHandlerBound = true;
+  }
+}
+
+function closeLikeFloatingList() {
+  if (activeLikeFloatingList) {
+    activeLikeFloatingList.style.display = 'none';
+    activeLikeFloatingList = null;
+  }
 }
 
 function renderPostTypeLabel(postType) {

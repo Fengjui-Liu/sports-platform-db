@@ -1,4 +1,5 @@
 let currentFeedMode = 'hot';
+let feedInteractionsCurrentUser = null;
 
 async function initHome() {
   try {
@@ -112,6 +113,11 @@ function setupCreateDropdown() {
   const createMenuContainer = document.querySelector('.create-dropdown-container');
 
   if (createMenuBtn && createMenuContainer) {
+    if (createMenuContainer.dataset.bound === 'true') {
+      return;
+    }
+    createMenuContainer.dataset.bound = 'true';
+
     createMenuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       createMenuContainer.classList.toggle('is-active');
@@ -269,6 +275,13 @@ function renderPostCard(post, boardName) {
 }
 
 function setupFeedInteractions(container, currentUser) {
+  feedInteractionsCurrentUser = currentUser;
+
+  if (container.dataset.interactionsBound === 'true') {
+    return;
+  }
+  container.dataset.interactionsBound = 'true';
+
   container.addEventListener('click', async (event) => {
     const likeBtn = event.target.closest('[data-action="like"]');
     const bookmarkBtn = event.target.closest('[data-action="bookmark"]');
@@ -276,14 +289,14 @@ function setupFeedInteractions(container, currentUser) {
     if (likeBtn) {
       event.preventDefault();
       event.stopPropagation();
-      await handleFeedLike(likeBtn, currentUser);
+      await handleFeedLike(likeBtn, feedInteractionsCurrentUser);
       return;
     }
 
     if (bookmarkBtn) {
       event.preventDefault();
       event.stopPropagation();
-      await handleFeedBookmark(bookmarkBtn, currentUser);
+      await handleFeedBookmark(bookmarkBtn, feedInteractionsCurrentUser);
       return;
     }
 

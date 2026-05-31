@@ -77,6 +77,8 @@ async function initBoardPage() {
   }
 }
 
+let boardPostInteractionsCurrentUser = null;
+
 function updateBoardCreateLinks(boardId) {
   if (!boardId) return;
 
@@ -203,6 +205,13 @@ function renderPostCard(post, boardName) {
 }
 
 function setupBoardPostInteractions(container, currentUser) {
+  boardPostInteractionsCurrentUser = currentUser;
+
+  if (container.dataset.interactionsBound === 'true') {
+    return;
+  }
+  container.dataset.interactionsBound = 'true';
+
   container.addEventListener('click', async (event) => {
     const likeBtn = event.target.closest('[data-action="like"]');
     const bookmarkBtn = event.target.closest('[data-action="bookmark"]');
@@ -210,14 +219,14 @@ function setupBoardPostInteractions(container, currentUser) {
     if (likeBtn) {
       event.preventDefault();
       event.stopPropagation();
-      await handleLikeClick(likeBtn, currentUser);
+      await handleLikeClick(likeBtn, boardPostInteractionsCurrentUser);
       return;
     }
 
     if (bookmarkBtn) {
       event.preventDefault();
       event.stopPropagation();
-      await handleBookmarkClick(bookmarkBtn, currentUser);
+      await handleBookmarkClick(bookmarkBtn, boardPostInteractionsCurrentUser);
       return;
     }
 

@@ -22,6 +22,7 @@ let bodyRecordState = {
 };
 
 let profileLayoutResizeBound = false;
+let isBodyHistoryModalOpen = false;
 
 const CHART_RANGE_PRESETS = [
   { value: '1m', label: '近 1 個月' },
@@ -694,6 +695,11 @@ function openBodyHistoryModal() {
   const monthSelect = el('#body-history-month-select');
 
   if (!modal) {
+    isBodyHistoryModalOpen = false;
+    return;
+  }
+
+  if (isBodyHistoryModalOpen && !modal.hidden) {
     return;
   }
 
@@ -703,12 +709,77 @@ function openBodyHistoryModal() {
 
   renderBodyHistoryList(bodyRecordState.records, bodyRecordState.historyMonth);
   modal.hidden = false;
+  isBodyHistoryModalOpen = true;
+  document.body.classList.add('modal-open');
 }
 
 function closeBodyHistoryModal() {
   const modal = el('#body-history-modal');
+  if (!modal) {
+    isBodyHistoryModalOpen = false;
+    document.body.classList.remove('modal-open');
+    return;
+  }
+
+  if (!isBodyHistoryModalOpen && modal.hidden) {
+    return;
+  }
+
+  modal.hidden = true;
+  isBodyHistoryModalOpen = false;
+  document.body.classList.remove('modal-open');
+}
+
+function resetBodyHistoryModalState() {
+  isBodyHistoryModalOpen = false;
+  document.body.classList.remove('modal-open');
+}
+
+function closeBodyHistoryModalFromOverlay(event) {
+  if (event.target === event.currentTarget) {
+    closeBodyHistoryModal();
+  }
+}
+
+function stopBodyHistoryModalClick(event) {
+  event.stopPropagation();
+}
+
+function handleBodyHistoryMonthChange(event) {
+  bodyRecordState.historyMonth = event.currentTarget.value;
+  renderBodyHistoryList(bodyRecordState.records, bodyRecordState.historyMonth);
+}
+
+function bindBodyHistoryModalControls() {
+  const openButton = el('#body-history-open');
+  const closeButton = el('#body-history-close');
+  const closeIcon = el('#body-history-close-icon');
+  const modal = el('#body-history-modal');
+  const modalCard = modal?.querySelector('.modal-card');
+  const monthSelect = el('#body-history-month-select');
+
+  if (openButton) {
+    openButton.onclick = openBodyHistoryModal;
+  }
+
+  if (closeButton) {
+    closeButton.onclick = closeBodyHistoryModal;
+  }
+
+  if (closeIcon) {
+    closeIcon.onclick = closeBodyHistoryModal;
+  }
+
   if (modal) {
-    modal.hidden = true;
+    modal.onclick = closeBodyHistoryModalFromOverlay;
+  }
+
+  if (modalCard) {
+    modalCard.onclick = stopBodyHistoryModalClick;
+  }
+
+  if (monthSelect) {
+    monthSelect.onchange = handleBodyHistoryMonthChange;
   }
 }
 
@@ -772,19 +843,7 @@ function bindBodyRecordControls() {
     await loadAndUpdateChart('custom', start, end);
   });
 
-  el('#body-history-month-select')?.addEventListener('change', (event) => {
-    bodyRecordState.historyMonth = event.currentTarget.value;
-    renderBodyHistoryList(bodyRecordState.records, bodyRecordState.historyMonth);
-  });
-
-  el('#body-history-open')?.addEventListener('click', openBodyHistoryModal);
-  el('#body-history-close')?.addEventListener('click', closeBodyHistoryModal);
-  el('#body-history-close-icon')?.addEventListener('click', closeBodyHistoryModal);
-  el('#body-history-modal')?.addEventListener('click', (event) => {
-    if (event.target.id === 'body-history-modal') {
-      closeBodyHistoryModal();
-    }
-  });
+  bindBodyHistoryModalControls();
 
   bindBodyEditModalControls();
 }
@@ -957,6 +1016,8 @@ function renderBodyRecords(records, options = {}) {
   const nextRangeStart = options.chartRangeStart !== undefined ? options.chartRangeStart : bodyRecordState.chartRangeStart;
   const nextRangeEnd = options.chartRangeEnd !== undefined ? options.chartRangeEnd : bodyRecordState.chartRangeEnd;
   const todayStr = toISODateString(new Date());
+
+  resetBodyHistoryModalState();
 
   bodyRecordState = {
     records: normalizedRecords,
