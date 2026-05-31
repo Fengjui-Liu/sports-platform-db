@@ -53,7 +53,7 @@ function getRangeDates(range, customStart = '', customEnd = '') {
   else if (range === '3m') start.setMonth(start.getMonth() - 3);
   else if (range === '6m') start.setMonth(start.getMonth() - 6);
   else if (range === '1y') start.setFullYear(start.getFullYear() - 1);
-  return { startDate: toISODateString(start), endDate: toISODateString(today) };
+  return { startDate: toISODateString(start), endDate: null };
 }
 
 function buildBodyRecordUrl(userId, range, customStart = '', customEnd = '') {
@@ -455,7 +455,9 @@ function renderFollowList(target, users, emptyText) {
 }
 
 function normalizeBodyRecord(record) {
-  const recordedAt = record.recordedAt || record.recorded_at || record.created_at || record.createdAt || '';
+  const recordedAt = normalizeLocalDateTimeValue(
+    record.recordedAt || record.recorded_at || record.created_at || record.createdAt || ''
+  );
 
   return {
     id: record.id || record.record_id || record.recordId,
@@ -464,6 +466,29 @@ function normalizeBodyRecord(record) {
     bodyFat: toNullableNumber(record.bodyFat ?? record.body_fat),
     recordedAt,
   };
+}
+
+function normalizeLocalDateTimeValue(value) {
+  if (!value) {
+    return '';
+  }
+
+  const text = String(value).trim().replace('T', ' ').replace(/Z$/, '');
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (!match) {
+    return text;
+  }
+
+  const hour = String(match[2] || '00').padStart(2, '0');
+  const minute = String(match[3] || '00').padStart(2, '0');
+  const second = String(match[4] || '00').padStart(2, '0');
+  return `${match[1]} ${hour}:${minute}:${second}`;
+}
+
+function getLocalDatePart(value) {
+  const normalized = normalizeLocalDateTimeValue(value);
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? match[0] : '';
 }
 
 function toNullableNumber(value) {
@@ -476,17 +501,16 @@ function toNullableNumber(value) {
 }
 
 function getRecordTime(record) {
-  const time = new Date(record.recordedAt).getTime();
-  return Number.isNaN(time) ? 0 : time;
+  return normalizeLocalDateTimeValue(record.recordedAt);
 }
 
 function formatMonthKey(value) {
-  const date = value ? new Date(value) : new Date();
-
-  if (Number.isNaN(date.getTime())) {
-    return formatMonthKey(new Date());
+  const datePart = getLocalDatePart(value);
+  if (datePart) {
+    return datePart.slice(0, 7);
   }
 
+  const date = new Date();
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   return `${year}-${month}`;
@@ -530,11 +554,19 @@ function getSelectableMonths(records, extraMonths = []) {
 }
 
 function sortRecordsByNewest(records) {
-  return [...records].sort((a, b) => getRecordTime(b) - getRecordTime(a));
+  return [...records].sort((a, b) => {
+    const dateCompare = getRecordTime(b).localeCompare(getRecordTime(a));
+    if (dateCompare !== 0) return dateCompare;
+    return Number(b.id || 0) - Number(a.id || 0);
+  });
 }
 
 function sortRecordsByOldest(records) {
-  return [...records].sort((a, b) => getRecordTime(a) - getRecordTime(b));
+  return [...records].sort((a, b) => {
+    const dateCompare = getRecordTime(a).localeCompare(getRecordTime(b));
+    if (dateCompare !== 0) return dateCompare;
+    return Number(a.id || 0) - Number(b.id || 0);
+  });
 }
 
 function getLatestRecord(records) {
@@ -567,20 +599,34 @@ function formatNullableMetric(value, unit) {
   return Number.isFinite(number) ? `${number.toFixed(2)} ${unit}` : '尚未紀錄';
 }
 
+function formatLocalDateTimeZh(value) {
+  const normalized = normalizeLocalDateTimeValue(value);
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+  if (!match) {
+    return normalized || '';
+  }
+
+  const hour = Number(match[4]);
+  const period = hour < 12 ? '上午' : '下午';
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${match[1]}/${match[2]}/${match[3]} ${period}${String(hour12).padStart(2, '0')}:${match[5]}`;
+}
+
 function formatDay(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const datePart = getLocalDatePart(value);
+  if (!datePart) {
     return '';
   }
 
-  return `${date.getMonth() + 1}/${date.getDate()}`;
+  const [, month, day] = datePart.split('-');
+  return `${Number(month)}/${Number(day)}`;
 }
 
 function buildBodyChartData(records) {
   return sortRecordsByOldest(records).map((record) => ({
     id: record.id,
     date: formatDay(record.recordedAt),
-    fullDate: formatDate(record.recordedAt),
+    fullDate: formatLocalDateTimeZh(record.recordedAt),
     weight: record.weight,
     height: record.height,
     bodyFat: record.bodyFat,
@@ -596,7 +642,7 @@ function renderBodyRecordSummary(record) {
   return `
     <div class="mini-card body-latest-card">
       <strong>最新紀錄</strong>
-      <div class="meta-line">${formatDate(record.recordedAt)}</div>
+      <div class="meta-line">${formatLocalDateTimeZh(record.recordedAt)}</div>
       <div class="meta-line">
         體重 ${formatMetric(record.weight)} kg / 身高 ${formatMetric(record.height)} cm / 體脂 ${formatMetric(record.bodyFat)} %
       </div>
@@ -623,7 +669,7 @@ function renderBodyHistoryList(records, selectedMonth) {
         <div class="mini-card">
           <div class="action-row body-history-row">
             <div>
-              <strong>${formatDate(record.recordedAt)}</strong>
+              <strong>${formatLocalDateTimeZh(record.recordedAt)}</strong>
               <div class="meta-line">
                 體重 ${formatMetric(record.weight)} kg / 身高 ${formatMetric(record.height)} cm / 體脂 ${formatMetric(record.bodyFat)} %
               </div>
@@ -766,17 +812,13 @@ function bindBodyEditModalControls() {
 }
 
 function toDateTimeLocalValue(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const normalized = normalizeLocalDateTimeValue(value);
+  const match = normalized.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})/);
+  if (!match) {
     return '';
   }
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hour}:${minute}`;
+  return `${match[1]}T${match[2]}:${match[3]}`;
 }
 
 function openBodyEditModal(recordId) {

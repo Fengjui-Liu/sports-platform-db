@@ -32,6 +32,23 @@ function ensureOwnProfile(req, res) {
   return userId;
 }
 
+function toMysqlDateTime(value) {
+  if (!value) {
+    return null;
+  }
+
+  const text = String(value).trim().replace('T', ' ').replace(/Z$/, '');
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (!match) {
+    return null;
+  }
+
+  const hour = String(match[2] || '00').padStart(2, '0');
+  const minute = String(match[3] || '00').padStart(2, '0');
+  const second = String(match[4] || '00').padStart(2, '0');
+  return `${match[1]} ${hour}:${minute}:${second}`;
+}
+
 function getRecordDate(value) {
   if (!value) {
     return null;
@@ -63,7 +80,7 @@ function getRecordDate(value) {
 
 function normalizeBodyRecordPayload(body = {}) {
   const bodyFat = body.body_fat ?? body.bodyFat;
-  const recordedAt = body.recorded_at || body.recordedAt || new Date();
+  const recordedAt = toMysqlDateTime(body.recorded_at || body.recordedAt);
   const recordDate = body.record_date || body.recordDate || getRecordDate(recordedAt);
 
   return {
@@ -83,29 +100,9 @@ function hasRequiredBodyRecordFields(payload) {
     payload.height !== null &&
     payload.bodyFat !== undefined &&
     payload.bodyFat !== null &&
+    payload.recordedAt &&
     payload.recordDate
   );
-}
-
-async function findDuplicateRecord(userId, recordDate, excludeRecordId = null) {
-  const params = [userId, recordDate];
-  let excludeClause = '';
-
-  if (excludeRecordId !== null) {
-    excludeClause = 'AND record_id <> ?';
-    params.push(excludeRecordId);
-  }
-
-  const [rows] = await db.query(
-    `SELECT record_id
-     FROM BODYRECORD
-     WHERE user_id = ? AND record_date = ?
-     ${excludeClause}
-     LIMIT 1`,
-    params
-  );
-
-  return rows[0] || null;
 }
 
 function mapBodyRecord(row) {
@@ -138,14 +135,6 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const duplicate = await findDuplicateRecord(userId, payload.recordDate);
-    if (duplicate) {
-      return res.status(409).json({
-        error: DUPLICATE_CREATE_MESSAGE,
-        message: DUPLICATE_CREATE_MESSAGE,
-      });
-    }
-
     const [result] = await db.query(
       `INSERT INTO BODYRECORD (user_id, weight, height, body_fat, recorded_at, record_date)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -167,12 +156,6 @@ router.post('/', async (req, res) => {
       recordDate: payload.recordDate,
     });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({
-        error: DUPLICATE_CREATE_MESSAGE,
-        message: DUPLICATE_CREATE_MESSAGE,
-      });
-    }
     sendServerError(res, err);
   }
 });
@@ -255,14 +238,6 @@ router.put('/:recordId', async (req, res) => {
       return res.status(403).json({ error: '不可修改其他使用者的身體數據' });
     }
 
-    const duplicate = await findDuplicateRecord(userId, payload.recordDate, recordId);
-    if (duplicate) {
-      return res.status(409).json({
-        error: DUPLICATE_UPDATE_MESSAGE,
-        message: DUPLICATE_UPDATE_MESSAGE,
-      });
-    }
-
     await db.query(
       `UPDATE BODYRECORD
        SET weight = ?, height = ?, body_fat = ?, recorded_at = ?, record_date = ?
@@ -276,12 +251,6 @@ router.put('/:recordId', async (req, res) => {
       recordId,
     });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({
-        error: DUPLICATE_UPDATE_MESSAGE,
-        message: DUPLICATE_UPDATE_MESSAGE,
-      });
-    }
     sendServerError(res, err);
   }
 });

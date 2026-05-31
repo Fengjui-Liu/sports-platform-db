@@ -50,9 +50,9 @@ async function initDb() {
       weight DECIMAL(5,2) NOT NULL,
       height DECIMAL(5,2) NOT NULL,
       body_fat DECIMAL(5,2) NOT NULL,
-      recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       record_date DATE NOT NULL,
-      UNIQUE KEY unique_user_record_date (user_id, record_date),
+      INDEX idx_bodyrecord_user_recorded (user_id, recorded_at, record_id),
       CONSTRAINT fk_bodyrecord_user FOREIGN KEY (user_id) REFERENCES USER(user_id) ON DELETE CASCADE
     )
   `);
@@ -277,6 +277,22 @@ async function initDb() {
       await db.query('ALTER TABLE BODYRECORD ADD COLUMN record_date DATE NULL AFTER recorded_at');
       await db.query(`UPDATE BODYRECORD SET record_date = DATE(recorded_at) WHERE record_date IS NULL`);
       await db.query('ALTER TABLE BODYRECORD MODIFY COLUMN record_date DATE NOT NULL');
+    }
+  });
+
+  await runSafe('BODYRECORD.recorded_at_datetime', async () => {
+    await db.query('ALTER TABLE BODYRECORD MODIFY COLUMN recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+  });
+
+  await runSafe('BODYRECORD.drop_unique_user_record_date', async () => {
+    if (await indexExists('BODYRECORD', 'unique_user_record_date')) {
+      await db.query('ALTER TABLE BODYRECORD DROP INDEX unique_user_record_date');
+    }
+  });
+
+  await runSafe('BODYRECORD.idx_bodyrecord_user_recorded', async () => {
+    if (!(await indexExists('BODYRECORD', 'idx_bodyrecord_user_recorded'))) {
+      await db.query('CREATE INDEX idx_bodyrecord_user_recorded ON BODYRECORD (user_id, recorded_at, record_id)');
     }
   });
 

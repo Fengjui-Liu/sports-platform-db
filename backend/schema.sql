@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS BODYRECORD (
   weight DECIMAL(5,2) NOT NULL,
   height DECIMAL(5,2) NOT NULL,
   body_fat DECIMAL(5,2) NOT NULL,
-  recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   record_date DATE NOT NULL,
-  UNIQUE KEY unique_user_record_date (user_id, record_date),
+  INDEX idx_bodyrecord_user_recorded (user_id, recorded_at, record_id),
   CONSTRAINT fk_bodyrecord_user FOREIGN KEY (user_id) REFERENCES USER(user_id) ON DELETE CASCADE
 );
 
