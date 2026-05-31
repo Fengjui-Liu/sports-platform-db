@@ -42,6 +42,9 @@ const CHART_RANGE_PRESETS = [
   { value: 'custom', label: '自訂' },
 ];
 
+const AVATAR_MAX_FILE_SIZE = 5 * 1024 * 1024;
+const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 function toISODateString(date) {
   const d = date instanceof Date ? date : new Date(date);
   const year = d.getFullYear();
@@ -319,8 +322,9 @@ function renderProfile(user, followStats, userId) {
 
   const followingCount = Number(followStats?.followingCount ?? user.following_count ?? 0);
   const followersCount = Number(followStats?.followersCount ?? user.follower_count ?? 0);
-  const avatar = user.profile_image
-    ? `<img class="avatar" src="${escapeHtml(user.profile_image)}" alt="avatar">`
+  const avatarSrc = getAvatarSrc(user.profile_image);
+  const avatar = avatarSrc
+    ? `<img class="avatar" src="${escapeHtml(avatarSrc)}" alt="avatar">`
     : `<span class="avatar-circle" style="width:88px;height:88px;font-size:32px;">${escapeHtml(getUserInitials(user.username))}</span>`;
 
   target.innerHTML = `
@@ -369,7 +373,7 @@ function renderProfile(user, followStats, userId) {
 
   if (profileForm) {
     profileForm.bio.value = user.bio || '';
-    profileForm.profile_image.value = user.profile_image || '';
+    syncProfileAvatarUI(user.profile_image, user.username);
   }
 }
 
@@ -401,6 +405,123 @@ function renderStats(user) {
       <div class="stat-value">${user.followersCount || 0}</div>
     </div>
   `;
+}
+
+function updateAvatarPreview(avatarUrl) {
+  const preview = el('#avatar-preview');
+  if (!preview) return;
+
+  const src = getAvatarSrc(avatarUrl);
+  if (!src) {
+    preview.hidden = true;
+    preview.removeAttribute('src');
+    return;
+  }
+
+  preview.src = src;
+  preview.hidden = false;
+}
+
+function setRemoveAvatarButtonState(avatarUrl) {
+  const button = el('#remove-avatar-btn');
+  if (!button) return;
+
+  const hasAvatar = Boolean(getAvatarSrc(avatarUrl));
+  button.hidden = !hasAvatar;
+  button.disabled = !hasAvatar;
+}
+
+function updateProfileAvatarDisplay(avatarUrl, username) {
+  const summary = el('#profile-card .profile-summary');
+  if (!summary) return;
+
+  const currentAvatar = summary.querySelector('.avatar, .avatar-circle');
+  const src = getAvatarSrc(avatarUrl);
+  const initials = getUserInitials(username || '');
+
+  if (src) {
+    if (currentAvatar?.tagName === 'IMG') {
+      currentAvatar.src = src;
+      currentAvatar.alt = 'avatar';
+      return;
+    }
+
+    const avatar = document.createElement('img');
+    avatar.className = 'avatar';
+    avatar.src = src;
+    avatar.alt = 'avatar';
+    if (currentAvatar) {
+      currentAvatar.replaceWith(avatar);
+    } else {
+      summary.prepend(avatar);
+    }
+    return;
+  }
+
+  if (currentAvatar?.classList?.contains('avatar-circle')) {
+    currentAvatar.textContent = initials;
+    return;
+  }
+
+  const avatar = document.createElement('span');
+  avatar.className = 'avatar-circle';
+  avatar.style.width = '88px';
+  avatar.style.height = '88px';
+  avatar.style.fontSize = '32px';
+  avatar.textContent = initials;
+  if (currentAvatar) {
+    currentAvatar.replaceWith(avatar);
+  } else {
+    summary.prepend(avatar);
+  }
+}
+
+function syncProfileAvatarUI(avatarUrl, username) {
+  updateProfileAvatarDisplay(avatarUrl, username);
+  updateAvatarPreview(avatarUrl);
+  setRemoveAvatarButtonState(avatarUrl);
+}
+
+function validateAvatarFile(file) {
+  if (!file) return '';
+
+  if (!AVATAR_ALLOWED_TYPES.includes(file.type)) {
+    return '請選擇 JPG、PNG 或 WEBP 圖片檔案';
+  }
+
+  if (file.size > AVATAR_MAX_FILE_SIZE) {
+    return '頭像檔案不可超過 5MB';
+  }
+
+  return '';
+}
+
+function bindAvatarPreview() {
+  const input = el('#avatar-file');
+  const status = el('#profile-form-status');
+  if (!input) return;
+
+  input.addEventListener('change', () => {
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const error = validateAvatarFile(file);
+    if (error) {
+      input.value = '';
+      showMessage(status, error, true);
+      window.alert(error);
+      return;
+    }
+
+    const preview = el('#avatar-preview');
+    if (preview) {
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+    }
+    showMessage(status, '');
+  });
 }
 
 function bindFollowStatBadges(userId) {
@@ -1482,6 +1603,67 @@ function bindProfileForms(userId, currentUser, userPlans = []) {
     disableFormWithMessage(sessionForm, '只能新增自己的訓練紀錄', sessionStatus);
   }
 
+  bindAvatarPreview();
+
+  const removeAvatarBtn = el('#remove-avatar-btn');
+  if (removeAvatarBtn) {
+    const currentAvatarUrl = currentUser?.profile_image || '';
+    removeAvatarBtn.hidden = !canEdit || !getAvatarSrc(currentAvatarUrl);
+    removeAvatarBtn.disabled = !canEdit || !getAvatarSrc(currentAvatarUrl);
+    removeAvatarBtn.onclick = async () => {
+      if (!canEdit) {
+        return;
+      }
+
+      const latestUser = getCurrentUser() || currentUser;
+      if (!latestUser?.profile_image) {
+        setRemoveAvatarButtonState(null);
+        return;
+      }
+
+      const confirmed = window.confirm('確定要移除目前的頭像嗎？');
+      if (!confirmed) {
+        return;
+      }
+
+      const status = el('#profile-form-status');
+      const avatarInput = el('#avatar-file');
+      removeAvatarBtn.disabled = true;
+      showMessage(status, '');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/users/${userId}/avatar`, {
+          method: 'DELETE',
+          headers: {
+            'X-User-Id': String(latestUser.user_id || currentUser.user_id),
+          },
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(result.error || result.message || '移除頭像失敗');
+        }
+
+        const nextUser = result.user ? { ...latestUser, ...result.user } : { ...latestUser, profile_image: null };
+        setCurrentUser(nextUser);
+        syncProfileAvatarUI(nextUser.profile_image, nextUser.username);
+
+        if (avatarInput) {
+          avatarInput.value = '';
+        }
+
+        showMessage(status, '頭像已移除');
+        window.setTimeout(() => window.location.reload(), 350);
+      } catch (err) {
+        showMessage(status, err.message || '移除頭像失敗', true);
+        window.alert(err.message || '移除頭像失敗');
+      } finally {
+        const latestAvatar = (getCurrentUser() || currentUser)?.profile_image || null;
+        setRemoveAvatarButtonState(latestAvatar);
+      }
+    };
+  }
+
   sessionForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!canEdit) return;
@@ -1530,13 +1712,64 @@ function bindProfileForms(userId, currentUser, userPlans = []) {
       return;
     }
 
-    const payload = serializeForm(event.currentTarget);
+    const form = event.currentTarget;
+    const status = el('#profile-form-status');
+    const avatarInput = el('#avatar-file');
+    const avatarFile = avatarInput?.files?.[0];
+    const error = validateAvatarFile(avatarFile);
+
+    if (error) {
+      showMessage(status, error, true);
+      window.alert(error);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('user_id', String(currentUser.user_id));
+    formData.append('bio', form.bio?.value || '');
+    if (avatarFile) {
+      formData.append('avatar', avatarFile);
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = '更新中...';
+    }
+    showMessage(status, '');
 
     try {
-      await API.put(`/users/${userId}`, payload);
-      window.location.reload();
+      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'X-User-Id': String(currentUser.user_id),
+        },
+        body: formData,
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || '更新資料失敗');
+      }
+
+      if (result.user) {
+        const nextUser = { ...currentUser, ...result.user };
+        setCurrentUser(nextUser);
+        syncProfileAvatarUI(nextUser.profile_image, nextUser.username);
+      }
+      if (avatarInput) {
+        avatarInput.value = '';
+      }
+      showMessage(status, '資料更新成功');
+      window.setTimeout(() => window.location.reload(), 350);
     } catch (err) {
-      window.alert(err.message);
+      showMessage(status, err.message || '更新資料失敗', true);
+      window.alert(err.message || '更新資料失敗');
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = '更新資料';
+      }
     }
   });
 

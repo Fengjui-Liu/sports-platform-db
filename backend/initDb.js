@@ -323,6 +323,14 @@ async function initDb() {
     }
   });
 
+  await runSafe('INVITATIONPARTICIPANT.creator_participants', async () => {
+    await db.query(`
+      INSERT IGNORE INTO INVITATIONPARTICIPANT (invitation_id, user_id, joined_at, status)
+      SELECT invitation_id, user_id, created_at, 'confirmed'
+      FROM WORKOUTINVITATION
+    `);
+  });
+
   await runSafe('WORKOUTPLAN.target_distance', async () => {
     if (!(await columnExists('WORKOUTPLAN', 'target_distance'))) {
       await db.query('ALTER TABLE WORKOUTPLAN ADD COLUMN target_distance DECIMAL(6,2) DEFAULT NULL');
@@ -542,16 +550,22 @@ async function seedData() {
 
   await db.query(`
     INSERT INTO INVITATIONPARTICIPANT (user_id, invitation_id, status, joined_at) VALUES
+    (1, 1, 'confirmed',  '2025-05-20 10:00:00'),
     (2, 1, 'confirmed',  '2025-05-20 11:00:00'),
     (6, 1, 'confirmed',  '2025-05-20 12:00:00'),
     (3, 1, 'waitlisted', '2025-05-20 13:00:00'),
+    (4, 2, 'confirmed',  '2025-05-21 10:00:00'),
     (1, 2, 'confirmed',  '2025-05-21 11:00:00'),
     (5, 2, 'confirmed',  '2025-05-21 12:00:00'),
+    (2, 3, 'confirmed',  '2025-05-22 10:00:00'),
     (1, 3, 'confirmed',  '2025-05-22 11:00:00'),
     (3, 3, 'confirmed',  '2025-05-22 12:00:00'),
     (7, 3, 'confirmed',  '2025-05-22 13:00:00'),
+    (5, 4, 'confirmed',  '2025-05-23 10:00:00'),
     (1, 4, 'confirmed',  '2025-05-23 11:00:00'),
-    (3, 4, 'confirmed',  '2025-05-23 12:00:00')
+    (3, 4, 'confirmed',  '2025-05-23 12:00:00'),
+    (8, 5, 'confirmed',  '2025-05-24 10:00:00'),
+    (10, 6, 'confirmed', '2025-05-25 10:00:00')
   `);
 
   await db.query('SET FOREIGN_KEY_CHECKS = 1');

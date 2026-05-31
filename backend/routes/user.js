@@ -1,11 +1,39 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const db = require('../db');
 const bodyRecordRoutes = require('./bodyrecord');
 const { ensureRequired, parseId, sendServerError } = require('./utils');
 
 router.use('/:id/bodyrecord', bodyRecordRoutes);
+
+const AVATAR_UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'avatars');
+fs.mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, AVATAR_UPLOAD_DIR);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `avatar-${uniqueSuffix}${ext}`);
+  },
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('只能上傳圖片檔案'));
+    }
+    cb(null, true);
+  },
+});
 
 function getRequestUserId(req) {
   return parseId(
@@ -25,6 +53,49 @@ function normalizeUser(row) {
     email: row.email,
     profile_image: row.profile_image,
   };
+}
+
+function handleAvatarUploadError(err, _req, res, next) {
+  if (!err) {
+    return next();
+  }
+
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? '頭像檔案不可超過 5MB'
+      : err.message;
+    return res.status(400).json({ error: message });
+  }
+
+  return res.status(400).json({ error: err.message || '頭像上傳失敗' });
+}
+
+function getLocalAvatarFilePath(avatarUrl) {
+  if (!avatarUrl) {
+    return null;
+  }
+
+  const value = String(avatarUrl).trim();
+  if (!value.startsWith('/uploads/avatars/')) {
+    return null;
+  }
+
+  return path.join(__dirname, '..', value.replace(/^\//, ''));
+}
+
+async function removeAvatarFileIfExists(avatarUrl) {
+  const avatarPath = getLocalAvatarFilePath(avatarUrl);
+  if (!avatarPath) {
+    return;
+  }
+
+  try {
+    await fs.promises.unlink(avatarPath);
+  } catch (err) {
+    if (err?.code !== 'ENOENT') {
+      console.warn('Failed to remove avatar file:', err);
+    }
+  }
 }
 
 // 註冊
@@ -182,19 +253,93 @@ router.get('/:id', async (req, res) => {
 });
 
 // 修改個人資料
-router.put('/:id', async (req, res) => {
+router.put('/:id', avatarUpload.single('avatar'), handleAvatarUploadError, async (req, res) => {
   const userId = parseId(req.params.id);
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
   }
 
-  const { bio, profile_image } = req.body;
+  const requestUserId = getRequestUserId(req);
+  if (Number.isNaN(requestUserId)) {
+    return res.status(401).json({ error: '請先登入' });
+  }
+
+  if (requestUserId !== userId) {
+    return res.status(403).json({ error: '只能編輯自己的個人資料' });
+  }
+
+  const { bio } = req.body;
   try {
+    const [[existingUser]] = await db.query(
+      'SELECT user_id, username, email, bio, profile_image FROM USER WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!existingUser) {
+      return res.status(404).json({ error: '找不到使用者' });
+    }
+
+    const nextProfileImage = req.file
+      ? `/uploads/avatars/${req.file.filename}`
+      : existingUser.profile_image || '';
+
     await db.query(
       'UPDATE USER SET bio = ?, profile_image = ? WHERE user_id = ?',
-      [bio || '', profile_image || '', userId]
+      [bio || '', nextProfileImage, userId]
     );
-    res.json({ message: '更新成功' });
+    res.json({
+      message: '更新成功',
+      user: {
+        user_id: userId,
+        username: existingUser.username,
+        email: existingUser.email,
+        bio: bio || '',
+        profile_image: nextProfileImage,
+      },
+    });
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.delete('/:id/avatar', async (req, res) => {
+  const userId = parseId(req.params.id);
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: '無效的 user id' });
+  }
+
+  const requestUserId = getRequestUserId(req);
+  if (Number.isNaN(requestUserId)) {
+    return res.status(401).json({ error: '請先登入' });
+  }
+
+  if (requestUserId !== userId) {
+    return res.status(403).json({ error: '只能移除自己的頭像' });
+  }
+
+  try {
+    const [[existingUser]] = await db.query(
+      'SELECT user_id, username, email, bio, profile_image FROM USER WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!existingUser) {
+      return res.status(404).json({ error: '找不到使用者' });
+    }
+
+    await db.query('UPDATE USER SET profile_image = NULL WHERE user_id = ?', [userId]);
+    await removeAvatarFileIfExists(existingUser.profile_image);
+
+    res.json({
+      message: '頭像已移除',
+      user: {
+        user_id: existingUser.user_id,
+        username: existingUser.username,
+        email: existingUser.email,
+        bio: existingUser.bio || '',
+        profile_image: null,
+      },
+    });
   } catch (err) {
     sendServerError(res, err);
   }

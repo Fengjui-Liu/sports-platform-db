@@ -900,6 +900,31 @@ body[data-page="profile"] .profile-container {
   object-fit: cover;
 }
 
+.avatar-upload-field {
+  align-items: flex-start;
+}
+
+.avatar-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #d6e2f5;
+  background: #f8faff;
+  box-shadow: 0 10px 24px rgba(31, 67, 150, 0.12);
+}
+
+.avatar-preview[hidden] {
+  display: none;
+}
+
+.avatar-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .profile-summary {
   display: flex;
   align-items: center;

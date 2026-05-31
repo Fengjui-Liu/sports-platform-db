@@ -180,6 +180,14 @@ function formatDate(value) {
   });
 }
 
+function getAvatarSrc(avatarUrl) {
+  if (!avatarUrl) return null;
+  const value = String(avatarUrl).trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:')) return value;
+  return `${API_BASE}${value.startsWith('/') ? value : `/${value}`}`;
+}
+
 function formatPostDisplayTime(value) {
   if (!value) return '';
 
