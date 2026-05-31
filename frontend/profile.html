@@ -29,7 +29,13 @@
               </div>
               <form id="profile-form" class="inline-form">
                 <textarea name="bio" placeholder="自我介紹"></textarea>
-                <input type="url" name="profile_image" placeholder="頭像網址">
+                <label class="form-field avatar-upload-field">
+                  <span>選擇頭像檔案</span>
+                  <img id="avatar-preview" class="avatar-preview" alt="頭像預覽" hidden>
+                  <input id="avatar-file" type="file" name="avatar" accept="image/jpeg,image/png,image/webp">
+                  <small class="meta-line">支援 JPG、PNG、WEBP，檔案大小上限 5MB。</small>
+                </label>
+                <div id="profile-form-status" class="form-status" aria-live="polite"></div>
                 <button type="submit" class="primary-btn">更新資料</button>
               </form>
             </section>
