@@ -86,6 +86,26 @@
           <div class="section-head">
             <h2>訓練紀錄</h2>
           </div>
+          <form id="session-form" class="inline-form">
+            <input type="hidden" name="user_id">
+            <label class="form-field">
+              <span>連結訓練計畫（選填）</span>
+              <select id="session-plan-select" name="plan_id">
+                <option value="">不連結訓練計畫</option>
+              </select>
+            </label>
+            <textarea name="notes" placeholder="訓練備註（選填）" rows="2"></textarea>
+            <label class="form-field">
+              <span>開始時間</span>
+              <input type="datetime-local" name="start_time" required>
+            </label>
+            <label class="form-field">
+              <span>結束時間</span>
+              <input type="datetime-local" name="end_time" required>
+            </label>
+            <div id="session-status" class="form-status" aria-live="polite"></div>
+            <button type="submit" class="secondary-btn">新增訓練紀錄</button>
+          </form>
           <div id="profile-sessions" class="stack-list"></div>
         </section>
 

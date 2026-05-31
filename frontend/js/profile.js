@@ -21,8 +21,17 @@ let bodyRecordState = {
   canEdit: false,
 };
 
+let sessionState = {
+  userId: '',
+  viewerId: '',
+  canEdit: false,
+  sessions: [],
+};
+
 let profileLayoutResizeBound = false;
 let isBodyHistoryModalOpen = false;
+let isLoadingBodyRecord = false;
+let _syncRafId = null;
 
 const CHART_RANGE_PRESETS = [
   { value: '1m', label: '近 1 個月' },
@@ -71,8 +80,14 @@ function drawCanvasMessage(canvas, message) {
   const cssWidth = Math.max(canvas.clientWidth, 320);
   const cssHeight = Math.max(canvas.clientHeight, 300);
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(cssWidth * dpr);
-  canvas.height = Math.round(cssHeight * dpr);
+  const targetW = Math.round(cssWidth * dpr);
+  const targetH = Math.round(cssHeight * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  } else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#f8faff';
   ctx.fillRect(0, 0, cssWidth, cssHeight);
@@ -199,18 +214,13 @@ async function initProfilePage() {
       '目前尚未參加揪團'
     );
 
-    renderSimpleList(
-      '#profile-sessions',
+    sessionState = {
+      userId,
+      viewerId: currentUser?.user_id || '',
+      canEdit: canEditOwnContent,
       sessions,
-      (session) => `
-        <div class="mini-card">
-          <strong>${escapeHtml(session.title || '未命名訓練')}</strong>
-          <p class="page-description">${escapeHtml(session.notes || '無備註')}</p>
-          <div class="meta-line">${formatDate(session.start_time)}</div>
-        </div>
-      `,
-      '目前尚無訓練紀錄'
-    );
+    };
+    renderSessionList(sessions, canEditOwnContent);
 
     renderSimpleList(
       '#profile-saved-plans',
@@ -225,7 +235,7 @@ async function initProfilePage() {
       '目前尚無收藏計畫'
     );
 
-    bindProfileForms(userId, currentUser);
+    bindProfileForms(userId, currentUser, createdPlans);
     bindFollowStatBadges(userId);
     bindProfileLayoutResize();
     scheduleProfileLayoutSync();
@@ -247,8 +257,14 @@ function bindProfileLayoutResize() {
 }
 
 function scheduleProfileLayoutSync() {
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(syncProfileTopLayout);
+  if (_syncRafId !== null) {
+    cancelAnimationFrame(_syncRafId);
+  }
+  _syncRafId = window.requestAnimationFrame(() => {
+    _syncRafId = window.requestAnimationFrame(() => {
+      _syncRafId = null;
+      syncProfileTopLayout();
+    });
   });
 }
 
@@ -785,7 +801,9 @@ function bindBodyHistoryModalControls() {
 
 async function loadAndUpdateChart(range, rangeStart, rangeEnd) {
   if (!bodyRecordState.userId) return;
+  if (isLoadingBodyRecord) return;
 
+  isLoadingBodyRecord = true;
   drawCanvasMessage(el('#body-chart'), '載入中...');
   hideBodyChartTooltip();
 
@@ -813,6 +831,8 @@ async function loadAndUpdateChart(range, rangeStart, rangeEnd) {
     drawBodyChart(buildBodyChartData(normalizedRecords));
   } catch (err) {
     drawCanvasMessage(el('#body-chart'), '載入失敗，請稍後再試');
+  } finally {
+    isLoadingBodyRecord = false;
   }
 }
 
@@ -1125,8 +1145,14 @@ function drawBodyChart(chartData) {
   const cssWidth = Math.max(canvas.clientWidth, 320);
   const cssHeight = Math.max(canvas.clientHeight, 300);
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(cssWidth * dpr);
-  canvas.height = Math.round(cssHeight * dpr);
+  const targetW = Math.round(cssWidth * dpr);
+  const targetH = Math.round(cssHeight * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  } else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const width = cssWidth;
@@ -1289,6 +1315,56 @@ function bindBodyChartTooltip() {
   };
 }
 
+function renderSessionList(sessions, canEdit) {
+  const target = el('#profile-sessions');
+  if (!target) return;
+
+  if (!sessions.length) {
+    target.innerHTML = createEmptyState('尚無訓練紀錄');
+    return;
+  }
+
+  target.innerHTML = sessions.map((session) => `
+    <div class="mini-card">
+      <div class="action-row">
+        <div>
+          ${session.title
+            ? `<strong>${escapeHtml(session.title)}</strong>`
+            : '<span class="meta-line">未連結訓練計畫</span>'}
+          <p class="page-description">${escapeHtml(session.notes || '無備註')}</p>
+          <div class="meta-line">開始：${formatDate(session.start_time)}</div>
+          <div class="meta-line">結束：${formatDate(session.end_time)}</div>
+        </div>
+        ${canEdit ? `<button class="danger-btn session-delete-btn" type="button" data-session-id="${escapeHtml(String(session.session_id))}">刪除</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  if (canEdit) {
+    target.querySelectorAll('.session-delete-btn').forEach((btn) => {
+      btn.addEventListener('click', () => deleteSession(btn.dataset.sessionId));
+    });
+  }
+}
+
+async function deleteSession(sessionId) {
+  if (!sessionId) return;
+
+  const currentUser = getCurrentUser();
+  if (!currentUser) return;
+
+  if (!window.confirm('確定要刪除這筆訓練紀錄嗎？此操作無法復原。')) return;
+
+  try {
+    await API.delete(`/sessions/${sessionId}`, { user_id: currentUser.user_id });
+    const updatedSessions = await API.get(`/users/${sessionState.userId}/sessions?viewer_id=${currentUser.user_id}`);
+    sessionState.sessions = updatedSessions;
+    renderSessionList(updatedSessions, sessionState.canEdit);
+  } catch (err) {
+    window.alert(err.message || '刪除訓練紀錄失敗');
+  }
+}
+
 function renderSimpleList(selector, items, renderer, emptyText) {
   const target = el(selector);
 
@@ -1328,15 +1404,70 @@ function updateBodyRecordSubmitState(form) {
   }
 }
 
-function bindProfileForms(userId, currentUser) {
+function bindProfileForms(userId, currentUser, userPlans = []) {
   const canEdit = currentUser && Number(currentUser.user_id) === Number(userId);
   const bodyRecordForm = el('#bodyrecord-form');
   const bodyRecordStatus = el('#bodyrecord-status');
 
+  // Populate session plan select with user's own plans
+  const sessionPlanSelect = el('#session-plan-select');
+  if (sessionPlanSelect && userPlans.length) {
+    sessionPlanSelect.insertAdjacentHTML(
+      'beforeend',
+      userPlans.map((plan) => `<option value="${escapeHtml(String(plan.plan_id))}">${escapeHtml(plan.title)}</option>`).join('')
+    );
+  }
+
+  const sessionForm = el('#session-form');
+  const sessionStatus = el('#session-status');
+
   if (!canEdit) {
     disableFormWithMessage(el('#profile-form'), '只能編輯自己的個人資料');
     disableFormWithMessage(bodyRecordForm, '只能新增自己的身體紀錄', bodyRecordStatus);
+    disableFormWithMessage(sessionForm, '只能新增自己的訓練紀錄', sessionStatus);
   }
+
+  sessionForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!canEdit) return;
+
+    const form = event.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    showMessage(sessionStatus, '');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = '新增中...';
+    }
+
+    try {
+      const payload = serializeForm(form);
+      if (payload.start_time) payload.start_time = toApiDateTime(payload.start_time);
+      if (payload.end_time) payload.end_time = toApiDateTime(payload.end_time);
+
+      await API.post('/sessions', payload);
+
+      form?.reset();
+      showMessage(sessionStatus, '新增訓練紀錄成功');
+
+      const updatedSessions = await API.get(`/users/${userId}/sessions?viewer_id=${currentUser.user_id}`);
+      sessionState.sessions = updatedSessions;
+      renderSessionList(updatedSessions, sessionState.canEdit);
+    } catch (err) {
+      showMessage(sessionStatus, err.message || '新增訓練紀錄失敗', true);
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = '新增訓練紀錄';
+      }
+    }
+  });
 
   el('#profile-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
