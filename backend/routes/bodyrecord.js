@@ -78,6 +78,24 @@ function getRecordDate(value) {
   return `${year}-${month}-${day}`;
 }
 
+function getMonthBounds(month) {
+  const match = String(month || '').match(/^(\d{4})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const end = new Date(year, monthIndex + 1, 0);
+  const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+  const endDay = String(end.getDate()).padStart(2, '0');
+
+  return {
+    startDate: `${match[1]}-${match[2]}-01`,
+    endDate: `${end.getFullYear()}-${endMonth}-${endDay}`,
+  };
+}
+
 function normalizeBodyRecordPayload(body = {}) {
   const bodyFat = body.body_fat ?? body.bodyFat;
   const recordedAt = toMysqlDateTime(body.recorded_at || body.recordedAt);
@@ -169,8 +187,13 @@ router.get('/', async (req, res) => {
     return res.status(400).json({ error: '無效的 user id' });
   }
 
-  const { start_date: startDate, end_date: endDate } = req.query;
+  const { month, start_date: startDate, end_date: endDate } = req.query;
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  const monthBounds = month ? getMonthBounds(month) : null;
+
+  if (month && !monthBounds) {
+    return res.status(400).json({ error: '無效的 month 格式，請使用 YYYY-MM' });
+  }
 
   if (startDate && !datePattern.test(startDate)) {
     return res.status(400).json({ error: '無效的 start_date 格式，請使用 YYYY-MM-DD' });
@@ -182,11 +205,16 @@ router.get('/', async (req, res) => {
   const conditions = ['user_id = ?'];
   const params = [userId];
 
-  if (startDate) {
+  if (monthBounds) {
+    conditions.push('record_date >= ?');
+    params.push(monthBounds.startDate);
+    conditions.push('record_date <= ?');
+    params.push(monthBounds.endDate);
+  } else if (startDate) {
     conditions.push('record_date >= ?');
     params.push(startDate);
   }
-  if (endDate) {
+  if (!monthBounds && endDate) {
     conditions.push('record_date <= ?');
     params.push(endDate);
   }
