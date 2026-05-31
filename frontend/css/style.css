@@ -1226,6 +1226,12 @@ body[data-page="profile"] .profile-container {
   padding-right: 4px;
 }
 
+.body-history-list .mini-card:hover,
+.body-latest-card:hover {
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
 .empty-state {
   padding: 18px;
   text-align: center;
