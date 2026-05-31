@@ -454,6 +454,12 @@ function updatePlanSaveButton(button, result) {
 }
 
 function getInvitationActionState(item, currentUser) {
+  const currentUserId = currentUser?.user_id;
+  const isJoined = getInvitationParticipants(item).some(
+    (participant) => Number(participant.user_id) === Number(currentUserId)
+  );
+  const isFull = Number(item.participant_count || 0) >= Number(item.max_participants || 0);
+
   if (isInvitationEnded(item)) {
     return { label: '已結束', action: 'ended', disabled: true, danger: false, hidden: true };
   }
@@ -466,7 +472,7 @@ function getInvitationActionState(item, currentUser) {
     return { label: '取消揪團', action: 'cancel', disabled: false, danger: true };
   }
 
-  if (Number(item.joined_by_viewer)) {
+  if (isJoined || Number(item.joined_by_viewer)) {
     return {
       label: item.viewer_status === 'waitlisted' ? '退出候補' : '退出揪團',
       action: 'leave',
@@ -475,8 +481,8 @@ function getInvitationActionState(item, currentUser) {
     };
   }
 
-  if (Number(item.participant_count || 0) >= Number(item.max_participants || 0)) {
-    return { label: '加入候補', action: 'join', disabled: false, danger: false };
+  if (isFull) {
+    return { label: '已額滿', action: 'full', disabled: true, danger: false };
   }
 
   return { label: '加入揪團', action: 'join', disabled: false, danger: false };
@@ -498,14 +504,22 @@ function renderInvitationStatusBadge(item) {
   return '';
 }
 
-function renderParticipantList(participantUsernames) {
-  if (!participantUsernames) {
-    return '<div class="meta-line">目前參與者：尚無資料</div>';
+function getInvitationParticipants(item) {
+  if (Array.isArray(item.participants)) {
+    return item.participants.filter((participant) => participant && participant.username);
   }
 
-  const names = String(participantUsernames).split(',').map((n) => n.trim()).filter(Boolean);
+  return String(item.participant_usernames || '')
+    .split(',')
+    .map((username) => ({ username: username.trim(), status: 'confirmed' }))
+    .filter((participant) => participant.username);
+}
 
-  if (!names.length) {
+function renderParticipantList(item) {
+  const participants = getInvitationParticipants(item)
+    .filter((participant) => !participant.status || participant.status === 'confirmed');
+
+  if (!participants.length) {
     return '<div class="meta-line">目前參與者：尚無資料</div>';
   }
 
@@ -513,7 +527,7 @@ function renderParticipantList(participantUsernames) {
     <div class="participant-list">
       <div class="meta-line">目前參與者</div>
       <div class="chip-row">
-        ${names.map((name) => `<span class="chip muted-chip">${escapeHtml(name)}</span>`).join('')}
+        ${participants.map((participant) => `<span class="chip muted-chip">${escapeHtml(participant.username)}</span>`).join('')}
       </div>
     </div>
   `;
@@ -577,7 +591,7 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
             </a>
           </div>
 
-          ${renderParticipantList(item.participant_usernames)}
+          ${renderParticipantList(item)}
         </div>
       `;
     })

@@ -4,6 +4,64 @@ const { ensureRequired, parseId, sendServerError } = require('./utils');
 
 const router = express.Router();
 
+async function getInvitationParticipants(invitationIds) {
+  const ids = [...new Set(invitationIds.map((id) => Number(id)).filter(Number.isFinite))];
+  if (!ids.length) {
+    return new Map();
+  }
+
+  const [rows] = await db.query(
+    `SELECT ip.invitation_id, ip.user_id, ip.status, u.username
+     FROM INVITATIONPARTICIPANT ip
+     JOIN USER u ON u.user_id = ip.user_id
+     WHERE ip.invitation_id IN (?)
+       AND ip.status <> 'cancelled'
+     ORDER BY
+       CASE ip.status WHEN 'confirmed' THEN 0 WHEN 'waitlisted' THEN 1 ELSE 2 END,
+       ip.joined_at ASC,
+       ip.user_id ASC`,
+    [ids]
+  );
+
+  const participantsByInvitation = new Map();
+  rows.forEach((row) => {
+    if (!participantsByInvitation.has(row.invitation_id)) {
+      participantsByInvitation.set(row.invitation_id, []);
+    }
+    participantsByInvitation.get(row.invitation_id).push({
+      user_id: row.user_id,
+      username: row.username,
+      status: row.status,
+    });
+  });
+
+  return participantsByInvitation;
+}
+
+async function attachInvitationParticipants(rows) {
+  const participantsByInvitation = await getInvitationParticipants(rows.map((row) => row.invitation_id));
+
+  return rows.map((row) => {
+    const participants = participantsByInvitation.get(row.invitation_id) || [];
+    if (!participants.some((participant) => Number(participant.user_id) === Number(row.user_id))) {
+      participants.unshift({
+        user_id: row.user_id,
+        username: row.username,
+        status: 'confirmed',
+      });
+    }
+
+    const confirmedParticipants = participants.filter((participant) => participant.status === 'confirmed');
+
+    return {
+      ...row,
+      participant_count: confirmedParticipants.length,
+      participants,
+      participant_usernames: confirmedParticipants.map((participant) => participant.username).join(','),
+    };
+  });
+}
+
 async function promoteNextWaitlisted(invitationId) {
   const [[invitation]] = await db.query(
     `SELECT i.max_participants,
@@ -80,6 +138,13 @@ router.post('/', async (req, res) => {
        )
        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
       [user_id, board_id, title, location, event_time, max_participants]
+    );
+
+    await db.query(
+      `INSERT INTO INVITATIONPARTICIPANT (invitation_id, user_id, joined_at, status)
+       VALUES (?, ?, NOW(), 'confirmed')
+       ON DUPLICATE KEY UPDATE status = 'confirmed'`,
+      [result.insertId, user_id]
     );
 
     res.status(201).json({
@@ -176,7 +241,53 @@ router.get('/', async (req, res) => {
       params
     );
 
-    res.json(rows);
+    res.json(await attachInvitationParticipants(rows));
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+router.get('/:id', async (req, res) => {
+  const invitationId = parseId(req.params.id);
+  const viewerId = req.query.user_id ? parseId(req.query.user_id) : null;
+
+  if (Number.isNaN(invitationId)) {
+    return res.status(400).json({ error: '無效的 invitation id' });
+  }
+
+  if (req.query.user_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 user id' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT i.invitation_id, i.user_id, i.board_id, i.title, i.location, i.event_time,
+              i.max_participants, i.created_at,
+              u.username,
+              b.sport_type AS board_name,
+              COUNT(DISTINCT p.user_id) +
+                CASE WHEN COUNT(DISTINCT CASE WHEN p.user_id = i.user_id THEN p.user_id END) = 0 THEN 1 ELSE 0 END
+                AS participant_count,
+              COUNT(DISTINCT CASE WHEN p.status = 'waitlisted' THEN p.user_id END) AS waitlist_count,
+              MAX(CASE WHEN vp.user_id IS NULL OR vp.status = 'cancelled' THEN 0 ELSE 1 END) AS joined_by_viewer,
+              MAX(CASE WHEN vp.user_id IS NULL THEN NULL ELSE vp.status END) AS viewer_status
+       FROM WORKOUTINVITATION i
+       JOIN USER u ON u.user_id = i.user_id
+       JOIN SPORTBOARD b ON b.board_id = i.board_id
+       LEFT JOIN INVITATIONPARTICIPANT p ON p.invitation_id = i.invitation_id
+       LEFT JOIN INVITATIONPARTICIPANT vp ON vp.invitation_id = i.invitation_id AND vp.user_id = ?
+       WHERE i.invitation_id = ?
+       GROUP BY i.invitation_id, i.user_id, i.board_id, i.title, i.location, i.event_time,
+                i.max_participants, i.created_at, u.username, b.sport_type`,
+      [viewerId, invitationId]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ error: '找不到揪團' });
+    }
+
+    const [invitation] = await attachInvitationParticipants(rows);
+    res.json(invitation);
   } catch (err) {
     sendServerError(res, err);
   }
@@ -200,7 +311,9 @@ router.post('/:id/join', async (req, res) => {
       `SELECT i.max_participants,
               i.event_time,
               NOW() >= i.event_time AS is_closed,
-              COUNT(DISTINCT CASE WHEN p.status = 'confirmed' THEN p.user_id END) AS participant_count,
+              COUNT(DISTINCT p.user_id) +
+                CASE WHEN COUNT(DISTINCT CASE WHEN p.user_id = i.user_id THEN p.user_id END) = 0 THEN 1 ELSE 0 END
+                AS participant_count,
               MAX(CASE WHEN vp.user_id IS NULL THEN NULL ELSE vp.status END) AS existing_status
        FROM WORKOUTINVITATION i
        LEFT JOIN INVITATIONPARTICIPANT p
@@ -227,20 +340,45 @@ router.post('/:id/join', async (req, res) => {
       });
     }
 
-    const status = Number(rows[0].participant_count) >= Number(rows[0].max_participants)
-      ? 'waitlisted'
-      : 'confirmed';
+    if (Number(rows[0].participant_count) >= Number(rows[0].max_participants)) {
+      return res.status(400).json({ error: '揪團人數已滿' });
+    }
 
     await db.query(
       `INSERT INTO INVITATIONPARTICIPANT (invitation_id, user_id, joined_at, status)
        VALUES (?, ?, NOW(), ?)
        ON DUPLICATE KEY UPDATE joined_at = VALUES(joined_at), status = VALUES(status)`,
-      [invitationId, userId, status]
+      [invitationId, userId, 'confirmed']
     );
 
+    const [updatedRows] = await db.query(
+      `SELECT i.invitation_id, i.user_id, i.board_id, i.title, i.location, i.event_time,
+              i.max_participants, i.created_at,
+              u.username,
+              b.sport_type AS board_name,
+              COUNT(DISTINCT p.user_id) +
+                CASE WHEN COUNT(DISTINCT CASE WHEN p.user_id = i.user_id THEN p.user_id END) = 0 THEN 1 ELSE 0 END
+                AS participant_count,
+              COUNT(DISTINCT CASE WHEN p.status = 'waitlisted' THEN p.user_id END) AS waitlist_count,
+              1 AS joined_by_viewer,
+              'confirmed' AS viewer_status
+       FROM WORKOUTINVITATION i
+       JOIN USER u ON u.user_id = i.user_id
+       JOIN SPORTBOARD b ON b.board_id = i.board_id
+       LEFT JOIN INVITATIONPARTICIPANT p ON p.invitation_id = i.invitation_id
+       WHERE i.invitation_id = ?
+       GROUP BY i.invitation_id, i.user_id, i.board_id, i.title, i.location, i.event_time,
+                i.max_participants, i.created_at, u.username, b.sport_type`,
+      [invitationId]
+    );
+    const [updatedInvitation] = await attachInvitationParticipants(updatedRows);
+
     res.json({
-      message: status === 'confirmed' ? '加入揪團成功' : '已加入候補',
-      status,
+      message: '加入揪團成功',
+      status: 'confirmed',
+      participant_count: updatedInvitation?.participant_count || 0,
+      participants: updatedInvitation?.participants || [],
+      invitation: updatedInvitation,
     });
   } catch (err) {
     sendServerError(res, err);
@@ -293,6 +431,19 @@ router.delete('/:id/join', async (req, res) => {
   }
 
   try {
+    const [[invitation]] = await db.query(
+      'SELECT user_id FROM WORKOUTINVITATION WHERE invitation_id = ?',
+      [invitationId]
+    );
+
+    if (!invitation) {
+      return res.status(404).json({ error: '找不到揪團' });
+    }
+
+    if (Number(invitation.user_id) === Number(req.body.user_id)) {
+      return res.status(400).json({ error: '發起人不能退出自己的揪團，請改用取消揪團' });
+    }
+
     await db.query(
       'DELETE FROM INVITATIONPARTICIPANT WHERE invitation_id = ? AND user_id = ?',
       [invitationId, req.body.user_id]
