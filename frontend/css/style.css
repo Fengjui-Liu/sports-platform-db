@@ -238,7 +238,6 @@ strong {
 
 .sidebar-add-board-btn:hover {
   background: var(--secondary);
-  transform: translateY(-1px);
 }
 
 .section-title,
@@ -367,7 +366,6 @@ body[data-page="profile"] .profile-container {
 .list-card:hover,
 .mini-card:hover,
 .stat-card:hover {
-  transform: translateY(-4px);
   box-shadow: 0 18px 42px rgba(31, 67, 150, 0.14);
 }
 
@@ -556,13 +554,6 @@ body[data-page="profile"] .profile-container {
   gap: 14px;
 }
 
-.board-nav-link:hover,
-.primary-btn:hover,
-.secondary-btn:hover,
-.ghost-btn:hover,
-.tab-btn:hover {
-  transform: translateY(-1px);
-}
 
 .post-feed-list {
   gap: 12px;
@@ -941,7 +932,6 @@ body[data-page="profile"] .profile-container {
 
 .follow-stat-chip:hover {
   background: #dfeaff;
-  transform: translateY(-1px);
 }
 
 .modal-backdrop {
@@ -1965,7 +1955,6 @@ body[data-page="profile"] .profile-container {
 
 .danger-btn:hover {
   filter: brightness(0.95);
-  transform: translateY(-1px);
 }
 
 .body-history-row {
