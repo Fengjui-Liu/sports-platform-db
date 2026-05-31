@@ -1741,18 +1741,33 @@ body[data-page="profile"] .profile-container {
 }
 
 .header-search-btn {
-  width: 40px;
+  width: 36px;
   height: 40px;
-  padding: 0;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: var(--primary);
+  border-radius: 0;
+  background: transparent;
   border: none;
-  color: #fff;
-  font-size: 16px;
-  flex: 0 0 40px;
+  color: #1e3a8a;
+  font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  font-size: 1.2rem;
+  line-height: 1;
+  flex: 0 0 36px;
+  margin-left: -2px;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.header-search-btn:hover {
+  opacity: 0.7;
+}
+
+.header-search-btn:focus-visible {
+  outline: 2px solid rgba(30, 58, 138, 0.28);
+  outline-offset: 2px;
 }
 
 /* ── Feed Tabs (首頁) ── */
