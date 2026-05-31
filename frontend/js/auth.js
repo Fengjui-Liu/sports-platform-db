@@ -41,7 +41,7 @@ function initAuthPage() {
     try {
       const result = await API.post('/users/login', payload);
       setCurrentUser(result.user);
-      showMessage(loginStatus, `登入成功，user_id = ${result.user.user_id}`);
+      showMessage(loginStatus, '登入成功');
       window.location.href = '/';
     } catch (err) {
       showMessage(loginStatus, err.message, true);
@@ -54,7 +54,7 @@ function initAuthPage() {
 
     try {
       const result = await API.post('/users/register', payload);
-      showMessage(registerStatus, `註冊成功，user_id = ${result.user_id}`);
+      showMessage(registerStatus, '註冊成功');
       showMessage(registerNext, '即將切換到登入頁');
       registerForm.reset();
       window.location.href = '/auth.html?mode=login';
