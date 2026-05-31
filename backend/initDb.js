@@ -322,8 +322,8 @@ async function initDb() {
 }
 
 async function seedData() {
-  const [[{ count }]] = await db.query('SELECT COUNT(*) AS count FROM USER');
-  if (count > 0) return;
+  const [rows] = await db.query('SELECT COUNT(*) as count FROM USER');
+  if (rows[0].count > 0) return;
 
   console.log('[initDb] 空資料庫，開始 seed sample data...');
   await db.query('SET FOREIGN_KEY_CHECKS = 0');
