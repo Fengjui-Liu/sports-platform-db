@@ -96,6 +96,8 @@ async function initProfilePage() {
 
   try {
     const viewerId = currentUser?.user_id || userId;
+    const planViewerId = currentUser?.user_id || '';
+    const canEditOwnContent = currentUser && Number(currentUser.user_id) === Number(userId);
 
     const [
       user,
@@ -112,9 +114,9 @@ async function initProfilePage() {
       getFollowStats(userId),
       API.get(buildBodyRecordUrl(userId, '3m')),
       API.get(`/users/${userId}/posts`),
-      API.get(`/users/${userId}/sessions`),
-      API.get(`/users/${userId}/saved-plans`),
-      API.get(`/workoutplans?user_id=${userId}`),
+      API.get(`/users/${userId}/sessions?viewer_id=${planViewerId}`),
+      API.get(`/users/${userId}/saved-plans?viewer_id=${planViewerId}`),
+      API.get(`/workoutplans?user_id=${userId}&viewer_id=${planViewerId}`),
       API.get(`/invitations?owner_id=${userId}&user_id=${viewerId}`),
       API.get(`/invitations?participant_user_id=${userId}&user_id=${viewerId}`),
     ]);
@@ -138,7 +140,10 @@ async function initProfilePage() {
               </div>
               <h3 style="margin-top:12px;">${escapeHtml(post.title || '未命名貼文')}</h3>
             </div>
-            <span class="meta-line">${formatDate(post.created_at)}</span>
+            <div class="chip-row" style="justify-content:flex-end;">
+              <span class="meta-line">${formatDate(post.created_at)}</span>
+              ${canEditOwnContent ? `<span class="ghost-btn" style="min-height:36px;" onclick="event.preventDefault();event.stopPropagation();window.location.href='/edit-post.html?id=${post.post_id}';">編輯</span>` : ''}
+            </div>
           </div>
           <div class="chip-row">
             <span class="chip muted-chip">讚 ${post.like_count}</span>
@@ -154,7 +159,15 @@ async function initProfilePage() {
       createdPlans,
       (plan) => `
         <a class="mini-card" href="/workoutplan.html?id=${plan.plan_id}">
-          <strong>${escapeHtml(plan.title)}</strong>
+          <div class="action-row">
+            <strong>${escapeHtml(plan.title)}</strong>
+            <div class="chip-row" style="justify-content:flex-end;">
+              <span class="visibility-badge ${Number(plan.is_public) ? 'public' : 'private'}">
+                ${Number(plan.is_public) ? '公開' : '私人'}
+              </span>
+              ${canEditOwnContent ? `<span class="ghost-btn" style="min-height:36px;" onclick="event.preventDefault();event.stopPropagation();window.location.href='/edit-plan.html?id=${plan.plan_id}';">編輯</span>` : ''}
+            </div>
+          </div>
           <p class="page-description">${escapeHtml(plan.exercise_name)} / ${plan.reps} reps / ${plan.sets} sets</p>
         </a>
       `,

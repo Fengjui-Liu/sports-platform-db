@@ -30,7 +30,7 @@ async function fetchBoards() {
         COUNT(DISTINCT i.invitation_id) AS invitation_count
      FROM SPORTBOARD b
      LEFT JOIN POST p ON p.board_id = b.board_id
-     LEFT JOIN WORKOUTPLAN w ON w.sport_type = b.sport_type
+     LEFT JOIN WORKOUTPLAN w ON w.sport_type = b.sport_type AND w.is_public = TRUE
      LEFT JOIN WORKOUTINVITATION i ON i.board_id = b.board_id
      GROUP BY b.board_id, b.sport_type, b.description, b.created_at
      ORDER BY b.created_at ASC, b.board_id ASC`

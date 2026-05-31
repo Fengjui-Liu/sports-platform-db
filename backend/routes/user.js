@@ -280,20 +280,26 @@ router.get('/:id/posts', async (req, res) => {
 
 router.get('/:id/saved-plans', async (req, res) => {
   const userId = parseId(req.params.id);
+  const viewerId = req.query.viewer_id ? parseId(req.query.viewer_id) : null;
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
+  }
+
+  if (req.query.viewer_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 viewer id' });
   }
 
   try {
     const [rows] = await db.query(
       `SELECT w.plan_id, w.title, w.sport_type, w.difficulty_level, w.exercise_name,
-              w.muscle_group, w.reps, w.sets, w.created_at, u.username
+              w.is_public, w.muscle_group, w.reps, w.sets, w.created_at, u.username
        FROM WORKOUTPLANSAVE s
        JOIN WORKOUTPLAN w ON w.plan_id = s.plan_id
        JOIN USER u ON u.user_id = w.user_id
        WHERE s.user_id = ?
+         AND (w.is_public = TRUE OR s.user_id = ?)
        ORDER BY s.created_at DESC, w.plan_id DESC`,
-      [userId]
+      [userId, viewerId]
     );
     res.json(rows);
   } catch (err) {

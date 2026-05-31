@@ -45,6 +45,7 @@ function renderPost(post, currentUser) {
       </div>
 
       <div class="chip-row">
+        ${isOwner ? `<button id="edit-post-btn" class="primary-btn" type="button">編輯貼文</button>` : ''}
         ${isOwner ? `<button id="delete-post-btn" class="gray-btn">刪除貼文</button>` : ''}
       </div>
     </div>
@@ -279,6 +280,10 @@ function bindPostActions(postId, post, currentUser) {
       bookmarkBtn.querySelector('.bookmark-icon').textContent = isBookmarked ? '★' : '☆';
       window.alert('操作失敗：' + err.message);
     }
+  });
+
+  el('#edit-post-btn')?.addEventListener('click', () => {
+    window.location.href = `/edit-post.html?id=${postId}`;
   });
 
   // Delete post

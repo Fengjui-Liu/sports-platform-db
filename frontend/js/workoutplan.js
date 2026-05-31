@@ -38,11 +38,15 @@ function renderPlan(plan, currentUser) {
       <div class="chip-row">
         <button id="save-plan-btn" class="primary-btn" type="button" ${currentUser ? '' : 'disabled'}>${saveLabel}</button>
         <button id="share-plan-btn" class="ghost-btn" type="button">分享</button>
+        ${isOwner ? '<button id="edit-plan-btn" class="primary-btn" type="button">編輯計畫</button>' : ''}
         ${isOwner ? '<button id="delete-plan-btn" class="ghost-btn" type="button">刪除計畫</button>' : ''}
       </div>
     </div>
     <div class="chip-row" style="margin-top:16px;">
       <span class="chip">${escapeHtml(formatDifficultyLevel(plan.difficulty_level))}</span>
+      <span class="visibility-badge ${Number(plan.is_public) ? 'public' : 'private'}">
+        ${Number(plan.is_public) ? '公開' : '私人'}
+      </span>
       <span class="chip muted-chip">${getSportIcon(plan.sport_type)}${escapeHtml(getSportName(plan.sport_type))}</span>
       ${plan.muscle_group ? `<span class="chip muted-chip">${escapeHtml(plan.muscle_group)}</span>` : ''}
     </div>
@@ -105,6 +109,10 @@ function bindWorkoutPlanActions(planId, plan, currentUser) {
     } catch (err) {
       showMessage(status, err.message, true);
     }
+  });
+
+  el('#edit-plan-btn')?.addEventListener('click', () => {
+    window.location.href = `/edit-plan.html?id=${planId}`;
   });
 
   el('#share-plan-btn')?.addEventListener('click', async () => {

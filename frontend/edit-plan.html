@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>編輯訓練計畫 | SportBoard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="compose">
+  <div class="site-shell">
+    <header id="site-header" class="site-header"></header>
+
+    <main class="main-content">
+      <div class="page-stack narrow">
+        <div>
+          <a id="back-to-plan" class="ghost-btn" href="/" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:16px;font-weight:800;text-decoration:none;">
+            返回計畫
+          </a>
+        </div>
+
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>編輯訓練計畫</h2>
+          </div>
+
+          <form id="edit-plan-form" class="inline-form">
+            <select id="edit-plan-board" name="board_id" required>
+              <option value="" disabled selected hidden>請選擇專欄</option>
+            </select>
+
+            <input type="text" name="title" placeholder="計畫標題" required>
+
+            <select id="edit-plan-visibility" name="is_public" required>
+              <option value="1">公開</option>
+              <option value="0">不公開，僅自己可見</option>
+            </select>
+
+            <select name="difficulty_level" required>
+              <option value="">請選擇難度</option>
+              <option value="easy">初級</option>
+              <option value="medium">中級</option>
+              <option value="hard">高級</option>
+            </select>
+
+            <input type="text" name="exercise_name" placeholder="訓練項目" required>
+
+            <div id="edit-plan-field-strength" class="inline-form">
+              <input type="text" name="muscle_group" placeholder="訓練部位，例如：腿部、核心、全身">
+              <input type="number" name="reps" placeholder="次數 reps" min="0">
+              <input type="number" name="sets" placeholder="組數 sets" min="0">
+            </div>
+
+            <div id="edit-plan-field-distance" class="inline-form d-none">
+              <input type="number" name="target_distance" placeholder="目標距離 (km)" step="0.01" min="0">
+            </div>
+
+            <div id="edit-plan-field-duration" class="inline-form d-none">
+              <input type="number" name="target_duration" placeholder="目標時間 (分鐘)" min="1">
+            </div>
+
+            <div id="edit-plan-field-rounds" class="inline-form d-none">
+              <input type="number" name="rounds" placeholder="回合數" min="1">
+            </div>
+
+            <div id="edit-plan-status" class="status-line"></div>
+
+            <div class="chip-row">
+              <button type="submit" class="primary-btn">儲存修改</button>
+              <a id="cancel-edit-plan" class="ghost-btn" href="/" style="text-decoration:none;">取消</a>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <nav id="bottom-nav" class="bottom-nav"></nav>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/edit-plan.js"></script>
+</body>
+</html>

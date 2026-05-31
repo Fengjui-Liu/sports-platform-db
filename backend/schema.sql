@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS WORKOUTPLAN (
   plan_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   title VARCHAR(255) NOT NULL,
-  is_public BOOLEAN DEFAULT TRUE,
+  is_public BOOLEAN NOT NULL DEFAULT TRUE,
   sport_type VARCHAR(50) NOT NULL,
   difficulty_level ENUM('easy', 'medium', 'hard') NOT NULL,
   exercise_name VARCHAR(50) NOT NULL,

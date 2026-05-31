@@ -12,6 +12,21 @@ router.post('/sessions', async (req, res) => {
   const { user_id, plan_id = null, notes = '', start_time, end_time } = req.body;
 
   try {
+    if (plan_id) {
+      const [[plan]] = await db.query(
+        'SELECT user_id, is_public FROM WORKOUTPLAN WHERE plan_id = ?',
+        [plan_id]
+      );
+
+      if (!plan) {
+        return res.status(404).json({ error: '找不到訓練計畫' });
+      }
+
+      if (!Number(plan.is_public) && Number(plan.user_id) !== Number(user_id)) {
+        return res.status(404).json({ error: '找不到訓練計畫' });
+      }
+    }
+
     const [result] = await db.query(
       `INSERT INTO WORKOUTSESSION (user_id, plan_id, notes, start_time, end_time)
        VALUES (?, ?, ?, ?, ?)`,
@@ -26,8 +41,13 @@ router.post('/sessions', async (req, res) => {
 
 router.get('/users/:id/sessions', async (req, res) => {
   const userId = parseId(req.params.id);
+  const viewerId = req.query.viewer_id ? parseId(req.query.viewer_id) : null;
   if (Number.isNaN(userId)) {
     return res.status(400).json({ error: '無效的 user id' });
+  }
+
+  if (req.query.viewer_id && Number.isNaN(viewerId)) {
+    return res.status(400).json({ error: '無效的 viewer id' });
   }
 
   try {
@@ -37,8 +57,9 @@ router.get('/users/:id/sessions', async (req, res) => {
        FROM WORKOUTSESSION s
        LEFT JOIN WORKOUTPLAN w ON w.plan_id = s.plan_id
        WHERE s.user_id = ?
+         AND (w.plan_id IS NULL OR w.is_public = TRUE OR s.user_id = ?)
        ORDER BY s.start_time DESC, s.session_id DESC`,
-      [userId]
+      [userId, viewerId]
     );
     res.json(rows);
   } catch (err) {

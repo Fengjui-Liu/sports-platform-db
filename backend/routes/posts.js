@@ -235,13 +235,22 @@ router.put('/:id', async (req, res) => {
     return res.status(400).json({ error: '無效的 post id' });
   }
 
-  if (!ensureRequired(res, req.body, ['user_id', 'title', 'content'])) {
+  if (!ensureRequired(res, req.body, ['user_id', 'board_id', 'title', 'content'])) {
     return;
   }
 
-  const { user_id, title, content, image_url = null } = req.body;
+  const { user_id, board_id, title, content, image_url = null } = req.body;
 
   try {
+    const [[board]] = await db.query(
+      'SELECT board_id FROM SPORTBOARD WHERE board_id = ?',
+      [board_id]
+    );
+
+    if (!board) {
+      return res.status(404).json({ error: '找不到專欄' });
+    }
+
     const [[post]] = await db.query(
       'SELECT user_id FROM POST WHERE post_id = ?',
       [postId]
@@ -256,8 +265,8 @@ router.put('/:id', async (req, res) => {
     }
 
     await db.query(
-      'UPDATE POST SET title = ?, content = ?, image_url = ? WHERE post_id = ?',
-      [title.trim(), content, image_url, postId]
+      'UPDATE POST SET board_id = ?, title = ?, content = ?, image_url = ? WHERE post_id = ?',
+      [board_id, title.trim(), content, image_url || null, postId]
     );
 
     res.json({ message: '修改貼文成功' });

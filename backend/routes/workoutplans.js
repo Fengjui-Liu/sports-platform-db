@@ -23,6 +23,13 @@ const normalizeDifficultyLevel = (value) => {
   return difficultyMap[String(value).trim().toLowerCase()];
 };
 
+const normalizeIsPublic = (value) => {
+  if (value === false || value === 0 || value === '0' || value === 'false') {
+    return 0;
+  }
+  return 1;
+};
+
 router.post('/', async (req, res) => {
   if (!ensureRequired(res, req.body, [
     'user_id',
@@ -50,6 +57,7 @@ router.post('/', async (req, res) => {
   } = req.body;
 
   const normalizedDifficultyLevel = normalizeDifficultyLevel(difficulty_level);
+  const normalizedIsPublic = normalizeIsPublic(is_public);
 
   if (!normalizedDifficultyLevel) {
     return res.status(400).json({
@@ -65,7 +73,7 @@ router.post('/', async (req, res) => {
          target_distance, target_duration, rounds, created_at
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        user_id, title, is_public, sport_type, normalizedDifficultyLevel,
+        user_id, title, normalizedIsPublic, sport_type, normalizedDifficultyLevel,
         exercise_name, muscle_group, reps, sets,
         target_distance || null, target_duration || null, rounds || null,
       ]
@@ -96,9 +104,10 @@ router.get('/', async (req, res) => {
     const params = [viewerId];
     let whereClause = 'WHERE w.is_public = TRUE';
 
-    // 如果有帶 user_id，代表要看某個使用者建立的計畫
     if (userId) {
-      whereClause = 'WHERE w.user_id = ?';
+      whereClause = viewerId && Number(viewerId) === Number(userId)
+        ? 'WHERE w.user_id = ?'
+        : 'WHERE w.user_id = ? AND w.is_public = TRUE';
       params.push(userId);
     }
 
@@ -170,6 +179,10 @@ router.get('/:id', async (req, res) => {
     }
 
     const plan = rows[0];
+    if (!Number(plan.is_public) && Number(plan.user_id) !== Number(viewerId)) {
+      return res.status(404).json({ error: '找不到訓練計畫' });
+    }
+
     res.json({
       ...plan,
       saved_by_viewer: Number(plan.saved_by_viewer),
@@ -218,6 +231,7 @@ router.put('/:id', async (req, res) => {
   } = req.body;
 
   const normalizedDifficultyLevel = normalizeDifficultyLevel(difficulty_level);
+  const normalizedIsPublic = normalizeIsPublic(is_public);
 
   if (!normalizedDifficultyLevel) {
     return res.status(400).json({
@@ -246,7 +260,7 @@ router.put('/:id', async (req, res) => {
            target_distance = ?, target_duration = ?, rounds = ?
        WHERE plan_id = ?`,
       [
-        title, is_public, sport_type, normalizedDifficultyLevel,
+        title, normalizedIsPublic, sport_type, normalizedDifficultyLevel,
         exercise_name, muscle_group, sets, reps,
         target_distance || null, target_duration || null, rounds || null,
         planId,
@@ -312,11 +326,15 @@ router.post('/:id/save', async (req, res) => {
 
   try {
     const [[plan]] = await db.query(
-      'SELECT plan_id FROM WORKOUTPLAN WHERE plan_id = ?',
+      'SELECT plan_id, user_id, is_public FROM WORKOUTPLAN WHERE plan_id = ?',
       [planId]
     );
 
     if (!plan) {
+      return res.status(404).json({ error: '找不到訓練計畫' });
+    }
+
+    if (!Number(plan.is_public) && Number(plan.user_id) !== Number(req.body.user_id)) {
       return res.status(404).json({ error: '找不到訓練計畫' });
     }
 

@@ -71,7 +71,7 @@ async function initDb() {
       plan_id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
       title VARCHAR(255) NOT NULL,
-      is_public BOOLEAN DEFAULT TRUE,
+      is_public BOOLEAN NOT NULL DEFAULT TRUE,
       sport_type VARCHAR(50) NOT NULL,
       difficulty_level ENUM('easy', 'medium', 'hard') NOT NULL,
       exercise_name VARCHAR(50) NOT NULL,
@@ -303,6 +303,15 @@ async function initDb() {
   await runSafe('WORKOUTPLAN.target_distance', async () => {
     if (!(await columnExists('WORKOUTPLAN', 'target_distance'))) {
       await db.query('ALTER TABLE WORKOUTPLAN ADD COLUMN target_distance DECIMAL(6,2) DEFAULT NULL');
+    }
+  });
+
+  await runSafe('WORKOUTPLAN.is_public', async () => {
+    if (!(await columnExists('WORKOUTPLAN', 'is_public'))) {
+      await db.query('ALTER TABLE WORKOUTPLAN ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT TRUE AFTER title');
+    } else {
+      await db.query('UPDATE WORKOUTPLAN SET is_public = TRUE WHERE is_public IS NULL');
+      await db.query('ALTER TABLE WORKOUTPLAN MODIFY COLUMN is_public BOOLEAN NOT NULL DEFAULT TRUE');
     }
   });
 

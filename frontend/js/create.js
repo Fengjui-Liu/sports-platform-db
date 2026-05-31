@@ -367,6 +367,7 @@ function bindCreateForms(currentUser, boards) {
     payload.user_id = Number(user.user_id);
     payload.board_id = Number(payload.board_id);
     payload.sport_type = selectedBoard.sport_type;
+    payload.is_public = Number(payload.is_public ?? 1);
 
     if (payload.reps !== undefined) {
       payload.reps = Number(payload.reps);
