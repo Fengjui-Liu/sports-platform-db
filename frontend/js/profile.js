@@ -657,7 +657,7 @@ function renderBodyRecordSummary(record) {
   }
 
   return `
-    <div class="mini-card body-latest-card">
+    <div class="mini-card body-latest-card no-hover">
       <strong>最新紀錄</strong>
       <div class="meta-line">${formatLocalDateTimeZh(record.recordedAt)}</div>
       <div class="meta-line">
@@ -683,7 +683,7 @@ function renderBodyHistoryList(records, selectedMonth) {
   list.innerHTML = monthRecords
     .map(
       (record) => `
-        <div class="mini-card">
+        <div class="mini-card no-hover">
           <div class="action-row body-history-row">
             <div>
               <strong>${formatLocalDateTimeZh(record.recordedAt)}</strong>

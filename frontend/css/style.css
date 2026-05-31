@@ -1237,6 +1237,12 @@ body[data-page="profile"] .profile-container {
   box-shadow: var(--shadow);
 }
 
+.no-hover,
+.no-hover:hover {
+  transform: none !important;
+  transition: none !important;
+}
+
 .empty-state {
   padding: 18px;
   text-align: center;
