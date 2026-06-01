@@ -1333,17 +1333,9 @@ function drawBodyChart(chartData) {
 
   const width = cssWidth;
   const height = cssHeight;
-  const padding = {
-    top: 24,
-    right: 24,
-    bottom: 44,
-    left: 46,
-  };
+  const padding = { top: 24, right: 52, bottom: 48, left: 52 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
-  const allValues = chartData
-    .flatMap((item) => [item.weight, item.bodyFat])
-    .filter((value) => Number.isFinite(value));
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = '#f8faff';
@@ -1351,7 +1343,10 @@ function drawBodyChart(chartData) {
   bodyRecordState.chartPoints = [];
   hideBodyChartTooltip();
 
-  if (!chartData.length || !allValues.length) {
+  const weightValues = chartData.map((d) => d.weight).filter(Number.isFinite);
+  const fatValues = chartData.map((d) => d.bodyFat).filter(Number.isFinite);
+
+  if (!chartData.length || (!weightValues.length && !fatValues.length)) {
     ctx.fillStyle = '#6f7d97';
     ctx.font = '18px sans-serif';
     ctx.textAlign = 'center';
@@ -1360,90 +1355,133 @@ function drawBodyChart(chartData) {
     return;
   }
 
-  const maxValue = Math.max(...allValues);
-  const minValue = Math.min(...allValues);
-  const valuePadding = Math.max((maxValue - minValue) * 0.12, maxValue === minValue ? Math.max(Math.abs(maxValue) * 0.08, 1) : 0);
-  const domainMin = minValue - valuePadding;
-  const domainMax = maxValue + valuePadding;
-  const range = domainMax - domainMin || 1;
+  // 左軸：體重 (kg)，min=0
+  const wMax = weightValues.length ? Math.max(...weightValues) : 100;
+  const wDomainMin = 0;
+  const wDomainMax = Math.max(wMax * 1.15, 1);
+  const wRange = wDomainMax - wDomainMin;
 
+  // 右軸：體脂 (%)，min=0，max=40
+  const fDomainMin = 0;
+  const fDomainMax = 40;
+  const fRange = fDomainMax - fDomainMin;
+
+  const toX = (index, total) => (
+    total === 1
+      ? padding.left + plotWidth / 2
+      : padding.left + (plotWidth / Math.max(total - 1, 1)) * index
+  );
+  const toWeightY = (v) => padding.top + plotHeight - ((v - wDomainMin) / wRange) * plotHeight;
+  const toFatY = (v) => padding.top + plotHeight - ((v - fDomainMin) / fRange) * plotHeight;
+
+  // 水平格線 + 雙 Y 軸刻度
   ctx.strokeStyle = '#dbe3f1';
   ctx.lineWidth = 1;
-
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i <= 3; i += 1) {
     const y = padding.top + (plotHeight / 3) * i;
     ctx.beginPath();
     ctx.moveTo(padding.left, y);
     ctx.lineTo(width - padding.right, y);
     ctx.stroke();
 
-    const value = domainMax - (range / 3) * i;
-    ctx.fillStyle = '#6f7d97';
-    ctx.font = '12px sans-serif';
+    // 左軸刻度（體重，藍）
+    const wVal = wDomainMax - (wRange / 3) * i;
+    ctx.fillStyle = '#1f4396';
+    ctx.font = '11px sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText(value.toFixed(0), padding.left - 8, y);
+    ctx.fillText(wVal.toFixed(1), padding.left - 6, y);
+
+    // 右軸刻度（體脂，水藍）
+    const fVal = fDomainMax - (fRange / 3) * i;
+    ctx.fillStyle = '#2d9ce0';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(fVal.toFixed(0), width - padding.right + 6, y);
   }
 
-  const toPoint = (value, index, total) => {
-    const x = total === 1
-      ? padding.left + plotWidth / 2
-      : padding.left + (plotWidth / Math.max(total - 1, 1)) * index;
-    const y = padding.top + plotHeight - ((value - domainMin) / range) * plotHeight;
-    return { x, y };
-  };
+  // 軸標題（旋轉文字）
+  ctx.save();
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillStyle = '#1f4396';
+  ctx.textAlign = 'center';
+  ctx.translate(13, padding.top + plotHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('體重 (kg)', 0, 0);
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillStyle = '#2d9ce0';
+  ctx.textAlign = 'center';
+  ctx.translate(width - 13, padding.top + plotHeight / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.fillText('體脂 (%)', 0, 0);
+  ctx.restore();
+
+  const total = chartData.length;
   const hitPoints = [];
 
-  const drawLine = (key, color) => {
+  const drawLine = (key, color, toY) => {
     const points = chartData
       .map((item, index) => {
         const value = item[key];
-        return Number.isFinite(value) ? { ...toPoint(value, index, chartData.length), value, data: item } : null;
+        return Number.isFinite(value)
+          ? { x: toX(index, total), y: toY(value), value, data: item }
+          : null;
       })
       .filter(Boolean);
 
-    if (!points.length) {
-      return;
-    }
+    if (!points.length) return;
 
     ctx.beginPath();
-    points.forEach((point, index) => {
-      if (index === 0) {
-        ctx.moveTo(point.x, point.y);
-      } else {
-        ctx.lineTo(point.x, point.y);
-      }
+    points.forEach((pt, i) => {
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
     });
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    points.forEach((point) => {
+    points.forEach((pt) => {
       ctx.beginPath();
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.fillStyle = color;
-      ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+      ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      hitPoints.push(point);
+      hitPoints.push(pt);
     });
   };
 
-  drawLine('weight', '#1f4396');
-  drawLine('bodyFat', '#2d9ce0');
+  drawLine('weight', '#1f4396', toWeightY);
+  drawLine('bodyFat', '#2d9ce0', toFatY);
+
+  // X 軸標籤：MM/DD 格式，資料點 > 12 時最多顯示 8 個
+  const maxTicks = 8;
+  const tickIndices = new Set();
+  if (total <= maxTicks) {
+    chartData.forEach((_, i) => tickIndices.add(i));
+  } else {
+    tickIndices.add(0);
+    tickIndices.add(total - 1);
+    for (let t = 1; t < maxTicks - 1; t += 1) {
+      tickIndices.add(Math.round((t * (total - 1)) / (maxTicks - 1)));
+    }
+  }
 
   ctx.fillStyle = '#6f7d97';
-  ctx.font = '12px sans-serif';
+  ctx.font = '11px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   chartData.forEach((record, index) => {
-    const point = toPoint(domainMin, index, chartData.length);
-    ctx.fillText(record.date, point.x, height - padding.bottom + 14);
+    if (!tickIndices.has(index)) return;
+    ctx.fillText(record.date, toX(index, total), height - padding.bottom + 8);
   });
 
   bodyRecordState.chartPoints = hitPoints;
-
   bindBodyChartTooltip();
 }
 
