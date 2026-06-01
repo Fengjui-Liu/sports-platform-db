@@ -352,7 +352,7 @@ function bindPostActions(postId, post, currentUser) {
       commentList.appendChild(card);
       bindCommentDeleteButtons(card, user);
 
-      commentForm.reset();
+      commentForm?.reset();
       fillUserIdInputs();
 
       const commentCount = el('#comment-count');

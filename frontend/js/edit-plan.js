@@ -84,7 +84,6 @@ function bindPlanBoardChange(form) {
 
   select.addEventListener('change', () => {
     updateEditPlanFields(getSelectedSportType());
-    form.querySelectorAll('.d-none input').forEach((input) => { input.value = ''; });
   });
 }
 
@@ -106,7 +105,14 @@ function updateEditPlanFields(sportType) {
   Object.entries(fieldMap).forEach(([id, visibleCategories]) => {
     const group = document.getElementById(id);
     if (!group) return;
-    group.classList.toggle('d-none', !visibleCategories.includes(category));
+    const visible = visibleCategories.includes(category);
+    group.classList.toggle('d-none', !visible);
+    if (!visible) {
+      group.querySelectorAll('input').forEach((input) => {
+        input.value = '';
+        input.removeAttribute('required');
+      });
+    }
   });
 }
 

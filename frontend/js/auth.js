@@ -56,7 +56,7 @@ function initAuthPage() {
       const result = await API.post('/users/register', payload);
       showMessage(registerStatus, '註冊成功');
       showMessage(registerNext, '即將切換到登入頁');
-      registerForm.reset();
+      registerForm?.reset();
       window.location.href = '/auth.html?mode=login';
     } catch (err) {
       showMessage(registerStatus, err.message, true);

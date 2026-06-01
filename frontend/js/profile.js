@@ -1860,7 +1860,7 @@ function bindProfileForms(userId, currentUser, userPlans = []) {
         chartRangeEnd: bodyRecordState.chartRangeEnd,
         historyMonth: bodyRecordState.historyMonth || createdMonth,
       });
-      form.reset();
+      form?.reset();
       updateBodyRecordSubmitState(form);
       showMessage(bodyRecordStatus, '新增身體數據成功');
     } catch (err) {

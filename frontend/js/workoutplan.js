@@ -27,6 +27,7 @@ async function initWorkoutPlanPage() {
 function renderPlan(plan, currentUser) {
   const isOwner = currentUser && Number(currentUser.user_id) === Number(plan.user_id);
   const saveLabel = Number(plan.saved_by_viewer) ? '取消收藏' : '收藏';
+  const detailRows = renderPlanDetailRows(plan);
 
   el('#plan-detail').innerHTML = `
     <p class="eyebrow">${getSportIcon(plan.sport_type)}${escapeHtml(getSportName(plan.sport_type))}</p>
@@ -39,7 +40,6 @@ function renderPlan(plan, currentUser) {
         <button id="save-plan-btn" class="primary-btn" type="button" ${currentUser ? '' : 'disabled'}>${saveLabel}</button>
         <button id="share-plan-btn" class="ghost-btn" type="button">分享</button>
         ${isOwner ? '<button id="edit-plan-btn" class="primary-btn" type="button">編輯計畫</button>' : ''}
-        ${isOwner ? '<button id="delete-plan-btn" class="ghost-btn" type="button">刪除計畫</button>' : ''}
       </div>
     </div>
     <div class="chip-row" style="margin-top:16px;">
@@ -50,15 +50,22 @@ function renderPlan(plan, currentUser) {
       <span class="chip muted-chip">${getSportIcon(plan.sport_type)}${escapeHtml(getSportName(plan.sport_type))}</span>
       ${plan.muscle_group ? `<span class="chip muted-chip">${escapeHtml(plan.muscle_group)}</span>` : ''}
     </div>
+    ${detailRows ? `
     <div class="panel-card" style="margin-top:18px;background:var(--surface-soft);box-shadow:none;">
       <h3>動作詳情</h3>
       <div class="stack-list" style="margin-top:14px;">
         <div class="mini-card">
-          ${renderPlanDetailRows(plan)}
+          ${detailRows}
         </div>
       </div>
-    </div>
+    </div>` : ''}
     <div id="plan-save-count" class="meta-line" style="margin-top:16px;">目前收藏數：${plan.save_count || 0}</div>
+    ${isOwner ? `
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <button id="delete-plan-btn" type="button" style="background:none;border:none;color:#e24b4a;cursor:pointer;font-size:14px;padding:0;">
+        刪除計畫
+      </button>
+    </div>` : ''}
   `;
 }
 
@@ -135,7 +142,7 @@ function bindWorkoutPlanActions(planId, plan, currentUser) {
     try {
       await API.post('/sessions', payload);
       showMessage(status, '訓練紀錄已建立');
-      event.currentTarget.reset();
+      sessionForm?.reset();
       fillUserIdInputs();
     } catch (err) {
       showMessage(status, err.message, true);
@@ -155,16 +162,15 @@ function renderPlanDetailRows(plan) {
 
   if (category === 'strength') {
     if (plan.muscle_group) rows.push(`<div class="meta-line">肌群：${escapeHtml(plan.muscle_group)}</div>`);
-    rows.push(`<div class="meta-line">組數：${plan.sets || 0} · 次數：${plan.reps || 0}</div>`);
+    if (plan.sets) rows.push(`<div class="meta-line">組數：${plan.sets}</div>`);
+    if (plan.reps) rows.push(`<div class="meta-line">次數：${plan.reps}</div>`);
   } else if (category === 'cardio') {
     if (plan.target_distance) rows.push(`<div class="meta-line">目標距離：${plan.target_distance} km</div>`);
     if (plan.target_duration) rows.push(`<div class="meta-line">目標時間：${plan.target_duration} 分鐘</div>`);
-  } else if (category === 'combat') {
+  } else {
+    // sport、combat、cardio_no_distance
     if (plan.target_duration) rows.push(`<div class="meta-line">目標時間：${plan.target_duration} 分鐘</div>`);
     if (plan.rounds) rows.push(`<div class="meta-line">回合數：${plan.rounds}</div>`);
-  } else {
-    // cardio_no_distance + sport
-    if (plan.target_duration) rows.push(`<div class="meta-line">目標時間：${plan.target_duration} 分鐘</div>`);
   }
 
   return rows.join('');
