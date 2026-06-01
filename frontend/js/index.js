@@ -192,7 +192,7 @@ function renderInvitationCard(item) {
           <span class="invitation-badge ${ended ? 'invitation-badge-ended' : ''}">${ended ? '已結束' : '揪團'}</span>
         </div>
 
-        <a href="/board.html?id=${item.board_id}&tab=invitations" style="text-decoration:none;color:inherit;display:block;">
+        <a href="/invitation.html?id=${item.invitation_id || item.id}" style="text-decoration:none;color:inherit;display:block;">
           <h3 class="post-card-title">${escapeHtml(item.title || '揪團活動')}</h3>
 
           <div class="chip-row" style="margin-top:6px;">

@@ -567,9 +567,11 @@ function renderBoardInvitations(items, currentUser, activeBoardId) {
       return `
         <div class="list-card">
           <div class="action-row">
-            <div>
-              <h3>${escapeHtml(item.title)}</h3>
-              <p class="page-description">${escapeHtml(item.location)}</p>
+            <div style="flex:1;">
+              <a href="/invitation.html?id=${item.invitation_id}" style="text-decoration:none;color:inherit;">
+                <h3 style="margin:0 0 4px;">${escapeHtml(item.title)}</h3>
+              </a>
+              <p class="page-description" style="margin:0;">${escapeHtml(item.location)}</p>
             </div>
 
             ${actionButton}
