@@ -10,6 +10,15 @@ async function getMyFollowers(userId) {
   return API.get(`/users/me/followers?user_id=${encodeURIComponent(userId)}`);
 }
 
+function getInvitationId(item) {
+  return item?.invitation_id || item?.workout_invitation_id || item?.id || '';
+}
+
+function getInvitationDetailUrl(item) {
+  const invitationId = getInvitationId(item);
+  return invitationId ? `/invitation.html?id=${encodeURIComponent(invitationId)}` : '';
+}
+
 let bodyRecordState = {
   records: [],
   chartRange: '3m',
@@ -200,24 +209,30 @@ async function initProfilePage() {
     renderSimpleList(
       '#profile-created-invitations',
       createdInvitations,
-      (inv) => `
-        <a class="mini-card" href="/board.html?id=${inv.board_id}">
+      (inv) => {
+        const detailUrl = getInvitationDetailUrl(inv);
+        return `
+        <a class="mini-card" href="${detailUrl || '#'}" style="cursor:pointer;">
           <strong>${escapeHtml(inv.title)}</strong>
           <div class="meta-line">${escapeHtml(inv.location)} / ${formatDate(inv.event_time)}</div>
         </a>
-      `,
+      `;
+      },
       '目前尚未建立揪團'
     );
 
     renderSimpleList(
       '#profile-joined-invitations',
       joinedInvitations,
-      (inv) => `
-        <a class="mini-card" href="/board.html?id=${inv.board_id}">
+      (inv) => {
+        const detailUrl = getInvitationDetailUrl(inv);
+        return `
+        <a class="mini-card" href="${detailUrl || '#'}" style="cursor:pointer;">
           <strong>${escapeHtml(inv.title)}</strong>
           <div class="meta-line">${escapeHtml(inv.location)} / ${formatDate(inv.event_time)}</div>
         </a>
-      `,
+      `;
+      },
       '目前尚未參加揪團'
     );
 
