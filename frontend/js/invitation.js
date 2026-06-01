@@ -19,6 +19,7 @@ async function initInvitationPage() {
     const activeBoard = boards.find((b) => b.board_id === invitation.board_id);
     renderBoardSidebar(boards, activeBoard?.board_id || null);
     renderInvitationDetail(invitation, currentUser);
+    initInvitationMap(invitation);
   } catch (err) {
     showMessage(el('#invitation-detail'), err.message, true);
   }
@@ -98,6 +99,12 @@ function renderInvitationDetail(item, currentUser) {
         </div>
       </div>` : ''}
 
+    ${item.location ? `
+    <div style="margin-top:20px;">
+      <div id="invitation-map" style="height:300px;border-radius:12px;border:1px solid var(--border);background:#eee;"></div>
+      <div id="invitation-distance" class="meta-line" style="margin-top:8px;color:var(--muted);font-size:13px;min-height:18px;"></div>
+    </div>` : ''}
+
     ${actionButton ? `<div style="margin-top:24px;">${actionButton}</div>` : ''}
   `;
 
@@ -175,6 +182,100 @@ function getInvitationActionState(item, currentUser) {
   }
 
   return { label: '加入揪團', action: 'join', disabled: false, danger: false };
+}
+
+// ── 地圖 ──────────────────────────────────────────────────────────────────────
+
+async function initInvitationMap(item) {
+  if (!item.location) return;
+  const mapEl = el('#invitation-map');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  const coords = await geocodeLocation(item.location);
+  if (!coords) {
+    mapEl.style.display = 'none';
+    el('#invitation-distance')?.remove();
+    return;
+  }
+
+  const { lat, lng } = coords;
+  const map = L.map('invitation-map').setView([lat, lng], 15);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
+
+  const popupContent = [
+    `<strong>${escapeHtml(item.title)}</strong>`,
+    item.event_time ? `<div>${formatDate(item.event_time)}</div>` : '',
+    `<div>${escapeHtml(item.location)}</div>`,
+  ].join('');
+
+  L.marker([lat, lng])
+    .addTo(map)
+    .bindPopup(popupContent)
+    .openPopup();
+
+  // Google Maps 連結（右下角）
+  const gmControl = L.control({ position: 'bottomright' });
+  gmControl.onAdd = () => {
+    const a = document.createElement('a');
+    a.href = `https://www.google.com/maps?q=${lat},${lng}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = '在 Google Maps 開啟';
+    a.style.cssText = [
+      'display:block',
+      'background:#fff',
+      'padding:6px 10px',
+      'border-radius:6px',
+      'font-size:12px',
+      'font-weight:600',
+      'color:#1f4396',
+      'text-decoration:none',
+      'box-shadow:0 1px 5px rgba(0,0,0,0.2)',
+      'white-space:nowrap',
+    ].join(';');
+    return a;
+  };
+  gmControl.addTo(map);
+
+  // 距離（若瀏覽器支援 geolocation）
+  const distEl = el('#invitation-distance');
+  if (distEl && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const dist = getDistance(pos.coords.latitude, pos.coords.longitude, lat, lng);
+        distEl.textContent = dist < 1
+          ? `距離你約 ${Math.round(dist * 1000)} 公尺`
+          : `距離你約 ${dist.toFixed(1)} 公里`;
+      },
+      () => { /* 用戶拒絕定位，不顯示距離 */ }
+    );
+  }
+}
+
+async function geocodeLocation(query) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=zh-TW`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'zh-TW,zh;q=0.9' } });
+    const data = await res.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {
+    return null;
+  }
+}
+
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 initInvitationPage();
